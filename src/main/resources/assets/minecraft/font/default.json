@@ -1,60 +1,12 @@
 {
   "providers": [
-    {
-      "type": "bitmap",
-      "file": "trtierlisttagger:icons/crystal.png",
-      "ascent": 8,
-      "height": 8,
-      "chars": ["\uE992"]
-    },
-    {
-      "type": "bitmap",
-      "file": "trtierlisttagger:icons/sword.png",
-      "ascent": 8,
-      "height": 8,
-      "chars": ["\uE993"]
-    },
-    {
-      "type": "bitmap",
-      "file": "trtierlisttagger:icons/uhc.png",
-      "ascent": 8,
-      "height": 8,
-      "chars": ["\uE994"]
-    },
-    {
-      "type": "bitmap",
-      "file": "trtierlisttagger:icons/pot.png",
-      "ascent": 8,
-      "height": 8,
-      "chars": ["\uE995"]
-    },
-    {
-      "type": "bitmap",
-      "file": "trtierlisttagger:icons/nethpot.png",
-      "ascent": 8,
-      "height": 8,
-      "chars": ["\uE996"]
-    },
-    {
-      "type": "bitmap",
-      "file": "trtierlisttagger:icons/smp.png",
-      "ascent": 8,
-      "height": 8,
-      "chars": ["\uE997"]
-    },
-    {
-      "type": "bitmap",
-      "file": "trtierlisttagger:icons/axe.png",
-      "ascent": 8,
-      "height": 8,
-      "chars": ["\uE998"]
-    },
-    {
-      "type": "bitmap",
-      "file": "trtierlisttagger:icons/gapple.png",
-      "ascent": 8,
-      "height": 8,
-      "chars": ["\uE999"]
-    }
+    {"type":"bitmap","file":"trtierlisttagger:icons/crystal.png","ascent":8,"height":8,"chars":["\uE992"]},
+    {"type":"bitmap","file":"trtierlisttagger:icons/sword.png","ascent":8,"height":8,"chars":["\uE993"]},
+    {"type":"bitmap","file":"trtierlisttagger:icons/uhc.png","ascent":8,"height":8,"chars":["\uE994"]},
+    {"type":"bitmap","file":"trtierlisttagger:icons/pot.png","ascent":8,"height":8,"chars":["\uE995"]},
+    {"type":"bitmap","file":"trtierlisttagger:icons/nethpot.png","ascent":8,"height":8,"chars":["\uE996"]},
+    {"type":"bitmap","file":"trtierlisttagger:icons/smp.png","ascent":8,"height":8,"chars":["\uE997"]},
+    {"type":"bitmap","file":"trtierlisttagger:icons/axe.png","ascent":8,"height":8,"chars":["\uE998"]},
+    {"type":"bitmap","file":"trtierlisttagger:icons/gapple.png","ascent":8,"height":8,"chars":["\uE999"]}
   ]
 }

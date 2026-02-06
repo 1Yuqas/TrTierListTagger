@@ -16,7 +16,7 @@ public abstract class PlayerEntityMixin {
 
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Text injectTier(Text original) {
-        if (!TierConfig.getBoolean(Config.ENABLED)) return original;
+        if (!TierConfig.getBoolean(Config.TAG)) return original;
         PlayerEntity self = (PlayerEntity) (Object) this;
         Text tierText = APIUtils.getFormattedTier(TierType.BEST, self.getName().getString());
 

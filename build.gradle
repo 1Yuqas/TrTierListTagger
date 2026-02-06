@@ -32,6 +32,9 @@ processResources {
 		expand "version": inputs.properties.version
 	}
 }
+tasks.withType(Jar).configureEach {
+	from("LICENSE")
+}
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 21

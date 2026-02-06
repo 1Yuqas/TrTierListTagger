@@ -1,7 +1,7 @@
 package one.yuqas.utils.enums;
 
 public enum Config {
-    ENABLED("enabled", true, "Mod Aktifliği"),
+    TAG("enabled", true, "Oyuncu Tagında Göster."),
     SIDE("side", true, "Tag Tarafı (Sağ/Sol)"),
     SHOW_PLACEHOLDER("show_placeholder", true, "Yüklenme Yazısı (...)");
 

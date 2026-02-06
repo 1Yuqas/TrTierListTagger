@@ -24,12 +24,12 @@ public class TierConfigScreen extends Screen {
     protected void init() {
         int centerX = this.width / 2;
 
-        isEnabled = TierConfig.getBoolean(Config.ENABLED);
+        isEnabled = TierConfig.getBoolean(Config.TAG);
         this.addDrawableChild(ButtonWidget.builder(
-                getStatusText("Mod Durumu: ", isEnabled),
+                getStatusText("Oyuncu Etiketinde Göster: ", isEnabled),
                 btn -> {
                     isEnabled = !isEnabled;
-                    btn.setMessage(getStatusText("Mod Durumu: ", isEnabled));
+                    btn.setMessage(getStatusText("Oyuncu Etiketinde Göster: ", isEnabled));
                 }
         ).dimensions(centerX - 100, 45, 200, 20).build());
 
@@ -68,7 +68,7 @@ public class TierConfigScreen extends Screen {
     }
 
     private void save() {
-        TierConfig.set(Config.ENABLED, isEnabled);
+        TierConfig.set(Config.TAG, isEnabled);
         TierConfig.set(Config.SIDE, isRightSide);
         TierConfig.set(Config.SHOW_PLACEHOLDER, placeholder);
         TierConfig.save();
@@ -82,7 +82,7 @@ public class TierConfigScreen extends Screen {
 
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 15, 0xFFFF55);
 
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.ENABLED.getDescription()), centerX, 35, 0xAAAAAA);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 35, 0xAAAAAA);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 85, 0xAAAAAA);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 135, 0xAAAAAA);
     }

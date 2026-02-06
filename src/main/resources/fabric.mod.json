@@ -4,6 +4,7 @@
 	"version": "${version}",
 	"name": "TrTierListTagger",
 	"authors": ["1Yuqas","ekky25"],
+	"license": ["CC0-1.0"],
 	"icon": "assets/trtierlisttagger/logo.png",
 	"environment": "*",
 	"entrypoints": {
