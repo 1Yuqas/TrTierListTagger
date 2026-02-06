@@ -5,12 +5,9 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
-import one.yuqas.utils.APIUtils;
-import one.yuqas.utils.enums.TierType;
 import one.yuqas.utils.ui.TierConfigScreen;
 
-public class TierTestCommand {
+public class TierCommand {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         MinecraftClient client = MinecraftClient.getInstance();
 
