@@ -1,0 +1,16 @@
+{
+	"required": true,
+	"package": "one.yuqas.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"PlayerEntityMixin",
+		"CacheResetMixin",
+		"EscMenuMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
