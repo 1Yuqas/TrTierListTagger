@@ -84,12 +84,14 @@ public class PlayerSearchScreen extends Screen {
                         String formattedId = id.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
                         UUID uuid = UUID.fromString(formattedId);
 
-                        // Fill the profile with textures using Minecraft's session service
-                        GameProfile profile = this.client.getSessionService().fillProfileProperties(new GameProfile(uuid, searchedName), false);
+                        // Create profile
+                        GameProfile profile = new GameProfile(uuid, searchedName);
                         
                         if (this.client.world != null) {
                             this.client.execute(() -> {
                                 dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
+                                // Fetch and apply skin textures
+                                this.client.getSkinProvider().fetchSkinTextures(profile);
                             });
                         }
                     }
@@ -122,7 +124,7 @@ public class PlayerSearchScreen extends Screen {
                     foundTiers = APIUtils.getAllTiers(searchedName);
 
                     // Top profile title
-                    context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s profile").styled(s -> s.withScale(1.1f).withColor(0xCCFFFFFF)), centerX, 30, 0xCCFFFFFF);
+                    context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s profile").styled(s -> s.withColor(0xCCFFFFFF)), centerX, 30, 0xCCFFFFFF);
 
                     // Centering the result block (Skin + Rankings)
                     int resultWidth = 120; // Estimated width
