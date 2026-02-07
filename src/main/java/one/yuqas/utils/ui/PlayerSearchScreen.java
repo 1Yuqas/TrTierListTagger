@@ -70,10 +70,8 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
         
-        // Fetch skin properly
         new Thread(() -> {
             try {
-                // Fetch UUID from Mojang API for correct skin
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.setRequestMethod("GET");

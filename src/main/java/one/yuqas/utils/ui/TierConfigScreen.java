@@ -14,6 +14,8 @@ public class TierConfigScreen extends Screen {
     private boolean isEnabled;
     private boolean isRightSide;
     private boolean placeholder;
+    private boolean isTabEnabled;
+    private boolean isTabRightSide;
 
     public TierConfigScreen(Screen parent) {
         super(Text.literal("TRTierList Ayarları"));
@@ -51,10 +53,29 @@ public class TierConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 100, 135, 200, 20).build());
 
+        // Tab menüsü etiket ayarları
+        isTabEnabled = TierConfig.getBoolean(Config.TAB_TAG);
+        this.addDrawableChild(ButtonWidget.builder(
+                getStatusText("Tab Menüsünde Etiket: ", isTabEnabled),
+                btn -> {
+                    isTabEnabled = !isTabEnabled;
+                    btn.setMessage(getStatusText("Tab Menüsünde Etiket: ", isTabEnabled));
+                }
+        ).dimensions(centerX - 100, 160, 200, 20).build());
+
+        isTabRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
+        this.addDrawableChild(ButtonWidget.builder(
+                getTabSideText(isTabRightSide),
+                btn -> {
+                    isTabRightSide = !isTabRightSide;
+                    btn.setMessage(getTabSideText(isTabRightSide));
+                }
+        ).dimensions(centerX - 100, 200, 200, 20).build());
+
         // Arama Butonu
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Oyuncu Ara").styled(s -> s.withColor(0xFFCC00)), btn -> {
             this.client.setScreen(new PlayerSearchScreen(this));
-        }).dimensions(centerX - 100, 160, 200, 20).build());
+        }).dimensions(centerX - 100, 225, 200, 20).build());
 
         // Alt butonlar - Daha yakın ve toplu
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Kaydet").styled(s -> s.withColor(0x2ECC71)), btn -> {
@@ -77,10 +98,17 @@ public class TierConfigScreen extends Screen {
                 .styled(style -> style.withColor(0x3498DB)));
     }
 
+    private Text getTabSideText(boolean isRight) {
+        return Text.literal("Tab Konumu: ").append(Text.literal(isRight ? "SAĞ" : "SOL")
+                .styled(style -> style.withColor(0x3498DB)));
+    }
+
     private void save() {
         TierConfig.set(Config.TAG, isEnabled);
         TierConfig.set(Config.SIDE, isRightSide);
         TierConfig.set(Config.SHOW_PLACEHOLDER, placeholder);
+        TierConfig.set(Config.TAB_TAG, isTabEnabled);
+        TierConfig.set(Config.TAB_SIDE, isTabRightSide);
         TierConfig.save();
     }
 
@@ -97,6 +125,8 @@ public class TierConfigScreen extends Screen {
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 45, 0xCCCCCC);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 85, 0xCCCCCC);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 125, 0xCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_TAG.getDescription()), centerX, 150, 0xCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_SIDE.getDescription()), centerX, 190, 0xCCCCCC);
     }
 
     @Override

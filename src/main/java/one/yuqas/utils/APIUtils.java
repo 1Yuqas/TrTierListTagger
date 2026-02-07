@@ -134,8 +134,6 @@ public class APIUtils {
     }
 
     public static void fetchSync(String playerName) {
-        // Simple blocking fetch for the search screen if needed, 
-        // but async is usually better. We can just use the existing async and poll.
         fetchAsync(playerName);
     }
 
