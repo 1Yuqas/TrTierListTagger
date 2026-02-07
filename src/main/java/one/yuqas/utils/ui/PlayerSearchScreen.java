@@ -12,6 +12,7 @@ import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.OtherClientPlayerEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
@@ -90,12 +91,15 @@ public class PlayerSearchScreen extends Screen {
                         String formattedId = id.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
                         UUID uuid = UUID.fromString(formattedId);
 
-                        GameProfile profile = new GameProfile(uuid, searchedName);
+                        // Fill profile with textures for external players
+                        GameProfile profile = client.getSessionService().fillProfileProperties(new GameProfile(uuid, searchedName), true);
                         
                         client.execute(() -> {
-                            client.getSkinProvider().fetchSkinTextures(profile);
                             if (client.world != null) {
-                                renderPlayer = new OtherClientPlayerEntity(client.world, profile);
+                                OtherClientPlayerEntity entity = new OtherClientPlayerEntity(client.world, profile);
+                                // Enable 3D layers (outer skin layers)
+                                entity.getDataTracker().set(PlayerEntity.PLAYER_MODEL_PARTS, (byte) 127);
+                                renderPlayer = entity;
                             }
                         });
                     }
@@ -137,6 +141,8 @@ public class PlayerSearchScreen extends Screen {
                         renderPlayer.bodyYaw = yaw;
 
                         InventoryScreen.drawEntity(ctx, cx - 110, 80, cx - 10, 240, 70, 0.0625F, (float)mouseX, (float)mouseY, renderPlayer);
+                    } else {
+                        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("3D Karakter sadece oyundayken görünür").styled(s -> s.withColor(0x88AAAAAA)), cx - 60, 150, 0x88AAAAAA);
                     }
 
                     // Rankings
