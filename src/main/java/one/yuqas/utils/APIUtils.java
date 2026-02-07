@@ -56,6 +56,8 @@ public class APIUtils {
                 if (responseCode != 200) {
                     if (responseCode == 404 || responseCode == 400) {
                         ERRORS.put(key, "Oyuncu kayıt değil");
+                    } else {
+                        ERRORS.put(key, "Sunucu hatası: " + responseCode);
                     }
                     return;
                 }
@@ -111,6 +113,7 @@ public class APIUtils {
                     CACHE.put(key, map);
                 }
             } catch (Exception e) {
+                ERRORS.put(playerName.toLowerCase(), "Bağlantı hatası");
                 e.printStackTrace();
             }
         });
