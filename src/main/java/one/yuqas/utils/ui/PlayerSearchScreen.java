@@ -14,6 +14,8 @@ import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 import java.util.UUID;
 
