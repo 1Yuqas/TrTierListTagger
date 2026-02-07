@@ -85,8 +85,11 @@ public class APIUtils {
                                 int colorValue = tierName.startsWith("HT") ?
                                         new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
 
+                                // Format: [Icon] Type: Tier
+                                String typeName = type.name().substring(0, 1).toUpperCase() + type.name().substring(1).toLowerCase();
                                 Text formatted = Text.empty()
                                         .append(Text.literal(type.getIcon() + " "))
+                                        .append(Text.literal(typeName + ": ").styled(style -> style.withColor(0xFF55FF))) // Purple color for type
                                         .append(Text.literal(tierName).styled(style -> style.withColor(colorValue).withBold(true)));
                                 map.put(type, formatted);
                             }
