@@ -1,9 +1,9 @@
 package one.yuqas.utils.enums;
 
 public enum Config {
-    TAG("enabled", true, "Oyuncu Tagında Göster."),
-    SIDE("side", true, "Tag Tarafı (Sağ/Sol)"),
-    SHOW_PLACEHOLDER("show_placeholder", true, "Yüklenme Yazısı (...)");
+    TAG("enabled", true, "Oyuncu başlığı üzerinde seviye etiketini gösterir."),
+    SIDE("side", true, "Etiketin oyuncu ismine göre konumunu belirler (Sağ/Sol)."),
+    SHOW_PLACEHOLDER("show_placeholder", true, "Veri yüklenirken geçici bir bekleme göstergesi (...) görüntüler.");
 
     private final String key;
     private final Object defaultValue;

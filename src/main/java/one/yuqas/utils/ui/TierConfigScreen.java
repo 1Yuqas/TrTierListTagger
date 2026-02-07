@@ -26,12 +26,12 @@ public class TierConfigScreen extends Screen {
 
         isEnabled = TierConfig.getBoolean(Config.TAG);
         this.addDrawableChild(ButtonWidget.builder(
-                getStatusText("Oyuncu Etiketinde Göster: ", isEnabled),
+                getStatusText("Etiket Görünümü: ", isEnabled),
                 btn -> {
                     isEnabled = !isEnabled;
-                    btn.setMessage(getStatusText("Oyuncu Etiketinde Göster: ", isEnabled));
+                    btn.setMessage(getStatusText("Etiket Görünümü: ", isEnabled));
                 }
-        ).dimensions(centerX - 100, 45, 200, 20).build());
+        ).dimensions(centerX - 100, 60, 200, 20).build());
 
         isRightSide = TierConfig.getBoolean(Config.SIDE);
         this.addDrawableChild(ButtonWidget.builder(
@@ -40,31 +40,36 @@ public class TierConfigScreen extends Screen {
                     isRightSide = !isRightSide;
                     btn.setMessage(getSideText(isRightSide));
                 }
-        ).dimensions(centerX - 100, 95, 200, 20).build());
+        ).dimensions(centerX - 100, 110, 200, 20).build());
 
         placeholder = TierConfig.getBoolean(Config.SHOW_PLACEHOLDER);
         this.addDrawableChild(ButtonWidget.builder(
-                getStatusText("Bekleme Yazısı: ", placeholder),
+                getStatusText("Bekleme Göstergesi: ", placeholder),
                 btn -> {
                     placeholder = !placeholder;
-                    btn.setMessage(getStatusText("Bekleme Yazısı: ", placeholder));
+                    btn.setMessage(getStatusText("Bekleme Göstergesi: ", placeholder));
                 }
-        ).dimensions(centerX - 100, 145, 200, 20).build());
+        ).dimensions(centerX - 100, 160, 200, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Ayarları Kaydet").styled(s -> s.withColor(0x55FF55)), btn -> {
+        // Alt butonlar - Daha dengeli yerleşim
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Kaydet").styled(s -> s.withColor(0x2ECC71)), btn -> {
             save();
             this.client.setScreen(parent);
-        }).dimensions(centerX - 100, this.height - 40, 200, 20).build());
+        }).dimensions(centerX - 105, 200, 100, 20).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Vazgeç").styled(s -> s.withColor(0xE74C3C)), btn -> {
+            this.client.setScreen(parent);
+        }).dimensions(centerX + 5, 200, 100, 20).build());
     }
 
     private Text getStatusText(String prefix, boolean val) {
-        return Text.literal(prefix).append(Text.literal(val ? "AÇIK" : "KAPALI")
-                .styled(style -> style.withColor(val ? 0x55FF55 : 0xFF5555)));
+        return Text.literal(prefix).append(Text.literal(val ? "AKTİF" : "PASİF")
+                .styled(style -> style.withColor(val ? 0x2ECC71 : 0xE74C3C)));
     }
 
     private Text getSideText(boolean isRight) {
-        return Text.literal("Tag Tarafı: ").append(Text.literal(isRight ? "SAĞ" : "SOL")
-                .styled(style -> style.withColor(0x55FFFF)));
+        return Text.literal("Etiket Konumu: ").append(Text.literal(isRight ? "SAĞ" : "SOL")
+                .styled(style -> style.withColor(0x3498DB)));
     }
 
     private void save() {
@@ -80,11 +85,17 @@ public class TierConfigScreen extends Screen {
 
         int centerX = this.width / 2;
 
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 15, 0xFFFF55);
+        // Arka plan paneli (Sade ve kaliteli bir görünüm için hafif karartma)
+        context.fill(centerX - 120, 30, centerX + 120, 230, 0x88000000);
+        context.drawBorder(centerX - 120, 30, 240, 200, 0xFF555555);
 
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 35, 0xAAAAAA);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 85, 0xAAAAAA);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 135, 0xAAAAAA);
+        // Başlık (Altın sarısı/Beyaz karışımı asil bir görünüm)
+        context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 40, 0xFFCC00);
+
+        // Açıklama Metinleri (Soft Gri)
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 52, 0xCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 102, 0xCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 152, 0xCCCCCC);
     }
 
     @Override
