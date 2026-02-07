@@ -51,15 +51,20 @@ public class TierConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 100, 135, 200, 20).build());
 
+        // Arama Butonu
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Oyuncu Ara").styled(s -> s.withColor(0xFFCC00)), btn -> {
+            this.client.setScreen(new PlayerSearchScreen(this));
+        }).dimensions(centerX - 100, 160, 200, 20).build());
+
         // Alt butonlar - Daha yakın ve toplu
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Kaydet").styled(s -> s.withColor(0x2ECC71)), btn -> {
             save();
             this.client.setScreen(parent);
-        }).dimensions(centerX - 105, 170, 100, 20).build());
+        }).dimensions(centerX - 105, 190, 100, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Vazgeç").styled(s -> s.withColor(0xE74C3C)), btn -> {
             this.client.setScreen(parent);
-        }).dimensions(centerX + 5, 170, 100, 20).build());
+        }).dimensions(centerX + 5, 190, 100, 20).build());
     }
 
     private Text getStatusText(String prefix, boolean val) {

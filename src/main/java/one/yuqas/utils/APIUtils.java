@@ -59,11 +59,29 @@ public class APIUtils {
                     JsonObject rankings = json.getAsJsonObject("rankings");
                     ConcurrentHashMap<TierType, Text> map = new ConcurrentHashMap<>();
 
+                    for (TierType type : TierType.values()) {
+                        if (type == TierType.BEST) continue;
+                        String apiKey = type.name().toLowerCase();
+                        if (rankings.has(apiKey)) {
+                            String tier = rankings.get(apiKey).getAsString();
+                            if (tier != null && !tier.equalsIgnoreCase("none")) {
+                                String tierName = tier.toUpperCase();
+                                int colorValue = tierName.startsWith("HT") ?
+                                        new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
+
+                                Text formatted = Text.empty()
+                                        .append(Text.literal(type.getIcon() + " "))
+                                        .append(Text.literal(tierName).styled(style -> style.withColor(colorValue).withBold(true)));
+                                map.put(type, formatted);
+                            }
+                        }
+                    }
+
                     BestTierResult best = findBest(rankings);
                     if (best != null) {
                         String tierName = best.tier.toUpperCase();
                         int colorValue = tierName.startsWith("HT") ?
-                        new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
+                                new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
 
                         Text formattedTag = Text.empty()
                                 .append(Text.literal(best.type.getIcon() + " "))
@@ -78,6 +96,28 @@ public class APIUtils {
             }
         });
     }
+
+    public static List<Text> getAllTiers(String playerName) {
+        String key = playerName.toLowerCase();
+        if (CACHE.containsKey(key)) {
+            return CACHE.get(key).entrySet().stream()
+                    .filter(e -> e.getKey() != TierType.BEST)
+                    .map(java.util.Map.Entry::getValue)
+                    .toList();
+        }
+        return List.of();
+    }
+
+    public static boolean hasData(String playerName) {
+        return CACHE.containsKey(playerName.toLowerCase());
+    }
+
+    public static void fetchSync(String playerName) {
+        // Simple blocking fetch for the search screen if needed, 
+        // but async is usually better. We can just use the existing async and poll.
+        fetchAsync(playerName);
+    }
+
 
     private static String colorize(String text) {
         return text.replace("&", "§");
