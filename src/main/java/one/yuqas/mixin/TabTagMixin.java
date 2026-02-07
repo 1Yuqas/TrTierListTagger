@@ -16,28 +16,28 @@ import org.spongepowered.asm.mixin.injection.At;
 public class TabTagMixin {
 
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
-    private Text injectTabTier(Text original) {
-
+    private Text injectTab(Text original) {
+        if (!TierConfig.getBoolean(Config.TAB_TAG)) return original;
+        Text tierText = APIUtils.getFormattedTier(TierType.BEST, getName().getString());
         PlayerListEntry self = (PlayerListEntry) (Object) this;
-        Text baseName = original != null ? original : Text.literal(self.getProfile().name());
 
-        if (!TierConfig.getBoolean(Config.TAB_TAG)) return baseName;
-
-        Text tierText = APIUtils.getFormattedTier(TierType.BEST, self.getProfile().name());
         if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
-            return baseName;
+            return original;
         }
-
         boolean isRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
         MutableText result = Text.empty();
         if (isRightSide) {
-            return result.append(baseName)
+            return result.append(original)
                     .append(Text.literal(" §7| ").formatted(net.minecraft.util.Formatting.GRAY))
                     .append(tierText);
         } else {
             return result.append(tierText)
                     .append(Text.literal(" §7| ").formatted(net.minecraft.util.Formatting.GRAY))
-                    .append(baseName);
+                    .append(original != null ? original : Text.literal(getName().getString()));                // BAZI SUNUCULAR TAGI GIZLEMIS CALISMI
         }
+    }
+
+    public Text getName() {
+        return Text.literal(((PlayerListEntry) (Object) this).getProfile().name());
     }
 }
