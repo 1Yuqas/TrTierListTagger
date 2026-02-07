@@ -1,6 +1,8 @@
 package one.yuqas.utils.ui;
 
 import com.mojang.authlib.GameProfile;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
@@ -61,8 +63,8 @@ public class PlayerSearchScreen extends Screen {
 
     private void updateVisibility() {
         boolean showSearch = !isSearching && (searchedName == null || searchedName.isEmpty());
-        searchField.visible = showSearch;
-        searchButton.visible = showSearch;
+        if (searchField != null) searchField.visible = showSearch;
+        if (searchButton != null) searchButton.visible = showSearch;
     }
 
     private void startSearch() {
@@ -109,7 +111,7 @@ public class PlayerSearchScreen extends Screen {
         super.render(ctx, mouseX, mouseY, delta);
         int cx = width / 2;
 
-        if (searchField.visible) {
+        if (searchField != null && searchField.visible) {
             ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("OYUNCU SORGULAMA").styled(s -> s.withBold(true).withColor(0xFFCC00)), cx, 40, 0xFFCC00);
             searchField.render(ctx, mouseX, mouseY, delta);
         }
@@ -134,7 +136,7 @@ public class PlayerSearchScreen extends Screen {
                         renderPlayer.setHeadYaw(yaw);
                         renderPlayer.bodyYaw = yaw;
 
-                        InventoryScreen.drawEntity(ctx, cx - 110, 80, cx - 10, 240, 70, 0.0625F, mouseX, mouseY, renderPlayer);
+                        InventoryScreen.drawEntity(ctx, cx - 110, 80, cx - 10, 240, 70, 0.0625F, (float)mouseX, (float)mouseY, renderPlayer);
                     }
 
                     // Rankings
@@ -143,12 +145,14 @@ public class PlayerSearchScreen extends Screen {
                     ctx.drawTextWithShadow(textRenderer, Text.literal("Rankings:").styled(s -> s.withColor(0xCCFFFFFF)), rankingsX, y, 0xCCFFFFFF);
                     y += 15;
 
-                    if (foundTiers.isEmpty()) {
-                        ctx.drawTextWithShadow(textRenderer, Text.literal("Tier bulunmuyor").styled(s -> s.withColor(0xCCFF5555)), rankingsX, y, 0xCCFF5555);
-                    } else {
-                        for (Text tier : foundTiers) {
-                            ctx.drawTextWithShadow(textRenderer, tier, rankingsX, y, 0xCCFFFFFF);
-                            y += 12;
+                    if (foundTiers != null) {
+                        if (foundTiers.isEmpty()) {
+                            ctx.drawTextWithShadow(textRenderer, Text.literal("Tier bulunmuyor").styled(s -> s.withColor(0xCCFF5555)), rankingsX, y, 0xCCFF5555);
+                        } else {
+                            for (Text tier : foundTiers) {
+                                ctx.drawTextWithShadow(textRenderer, tier, rankingsX, y, 0xCCFFFFFF);
+                                y += 12;
+                            }
                         }
                     }
                 }
@@ -172,35 +176,35 @@ public class PlayerSearchScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+    public boolean mouseClicked(Click click, boolean bl) {
+        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             rotating = true;
-            lastMouseX = mouseX;
+            lastMouseX = click.x();
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, bl);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(Click click) {
         rotating = false;
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(click);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    public boolean mouseDragged(Click click, double dx, double dy) {
         if (rotating) {
-            yaw += (mouseX - lastMouseX) * 0.5f;
-            lastMouseX = mouseX;
+            yaw += (click.x() - lastMouseX) * 0.5f;
+            lastMouseX = click.x();
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        return super.mouseDragged(click, dx, dy);
     }
 
     @Override
     public boolean keyPressed(KeyInput input) {
         if (input.key() == GLFW.GLFW_KEY_ENTER || input.key() == GLFW.GLFW_KEY_KP_ENTER) {
-            if (searchField.visible && !searchField.getText().isEmpty()) {
+            if (searchField != null && searchField.visible && !searchField.getText().isEmpty()) {
                 startSearch();
                 return true;
             }
@@ -209,12 +213,12 @@ public class PlayerSearchScreen extends Screen {
             client.setScreen(parent);
             return true;
         }
-        if (searchField.keyPressed(input)) return true;
+        if (searchField != null && searchField.keyPressed(input)) return true;
         return super.keyPressed(input);
     }
 
     @Override
     public boolean charTyped(CharInput input) {
-        return searchField.charTyped(input) || super.charTyped(input);
+        return (searchField != null && searchField.charTyped(input)) || super.charTyped(input);
     }
 }
