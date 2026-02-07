@@ -2,9 +2,9 @@ package one.yuqas.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import one.yuqas.utils.APIUtils;
 import one.yuqas.utils.TierConfig;
 import one.yuqas.utils.enums.Config;
@@ -15,29 +15,59 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(PlayerListEntry.class)
 public class TabTagMixin {
 
+    private Text customTier = null;
+
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Text injectTab(Text original) {
-        if (!TierConfig.getBoolean(Config.TAB_TAG)) return original;
-        Text tierText = APIUtils.getFormattedTier(TierType.BEST, getName().getString());
         PlayerListEntry self = (PlayerListEntry) (Object) this;
 
-        if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
-            return original;
+        // 1. ADIM: Sunucunun gönderdiği asıl ismi (Taglar dahil) bul
+        Text baseName = original;
+        if (baseName == null) {
+            if (self.getScoreboardTeam() != null) {
+                baseName = self.getScoreboardTeam().decorateName(Text.literal(self.getProfile().name()));
+            } else {
+                baseName = Text.literal(self.getProfile().name());
+            }
         }
-        boolean isRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
-        MutableText result = Text.empty();
-        if (isRightSide) {
-            return result.append(original)
-                    .append(Text.literal(" §7| ").formatted(net.minecraft.util.Formatting.GRAY))
-                    .append(tierText);
-        } else {
-            return result.append(tierText)
-                    .append(Text.literal(" §7| ").formatted(net.minecraft.util.Formatting.GRAY))
-                    .append(original != null ? original : Text.literal(getName().getString()));                // BAZI SUNUCULAR TAGI GIZLEMIS CALISMI
+
+        try {
+            if (!TierConfig.getBoolean(Config.TAB_TAG)) return baseName;
+
+            String playerName = getPlayerName();
+            if (playerName == null || playerName.isEmpty()) return baseName;
+
+            Text tierText = customTier;
+            if (tierText == null) {
+                tierText = APIUtils.getFormattedTier(TierType.BEST, playerName);
+            }
+
+            if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
+                return baseName;
+            }
+
+            boolean isRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
+            MutableText finalEntry = Text.empty();
+            Text separator = Text.literal(" | ").formatted(Formatting.GRAY);
+
+            if (isRightSide) {
+                return finalEntry.append(baseName).append(separator).append(tierText);
+            } else {
+                return finalEntry.append(tierText).append(separator).append(baseName);
+            }
+
+        } catch (Exception e) {
+            return baseName;
         }
     }
 
-    public Text getName() {
-        return Text.literal(((PlayerListEntry) (Object) this).getProfile().name());
+    private String getPlayerName() {
+        try {
+            PlayerListEntry self = (PlayerListEntry) (Object) this;
+            if (self.getProfile() == null) return null;
+            return self.getProfile().name();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
