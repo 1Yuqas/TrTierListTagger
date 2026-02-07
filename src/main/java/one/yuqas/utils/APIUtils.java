@@ -19,6 +19,7 @@ public class APIUtils {
     private static final Gson GSON = new Gson();
 
     private static final ConcurrentHashMap<String, ConcurrentHashMap<TierType, Text>> CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, String> ERRORS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Long> FETCH_TIME = new ConcurrentHashMap<>();
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2);
 
@@ -44,20 +45,35 @@ public class APIUtils {
 
     private static void fetchAsync(String playerName) {
         EXECUTOR.submit(() -> {
+            String key = playerName.toLowerCase();
             try {
                 URL url = new URL(API_URL + playerName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.setConnectTimeout(5000);
                 con.setRequestProperty("User-Agent", "Mozilla/5.0");
 
-                if (con.getResponseCode() != 200) return;
+                int responseCode = con.getResponseCode();
+                if (responseCode != 200) {
+                    if (responseCode == 404 || responseCode == 400) {
+                        ERRORS.put(key, "Oyuncu kayıt değil");
+                    }
+                    return;
+                }
 
                 try (InputStreamReader reader = new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8)) {
                     JsonObject json = GSON.fromJson(reader, JsonObject.class);
-                    if (!json.has("rankings")) return;
+                    if (json.has("error")) {
+                        ERRORS.put(key, "Oyuncu kayıt değil");
+                        return;
+                    }
+                    if (!json.has("rankings")) {
+                        ERRORS.put(key, "Tier verisi bulunamadı");
+                        return;
+                    }
 
                     JsonObject rankings = json.getAsJsonObject("rankings");
                     ConcurrentHashMap<TierType, Text> map = new ConcurrentHashMap<>();
+                    ERRORS.remove(key); // Clear any previous errors
 
                     for (TierType type : TierType.values()) {
                         if (type == TierType.BEST) continue;
@@ -89,7 +105,7 @@ public class APIUtils {
 
                         map.put(TierType.BEST, formattedTag);
                     }
-                    CACHE.put(playerName.toLowerCase(), map);
+                    CACHE.put(key, map);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -108,8 +124,13 @@ public class APIUtils {
         return List.of();
     }
 
+    public static String getError(String playerName) {
+        return ERRORS.get(playerName.toLowerCase());
+    }
+
     public static boolean hasData(String playerName) {
-        return CACHE.containsKey(playerName.toLowerCase());
+        String key = playerName.toLowerCase();
+        return CACHE.containsKey(key) || ERRORS.containsKey(key);
     }
 
     public static void fetchSync(String playerName) {
