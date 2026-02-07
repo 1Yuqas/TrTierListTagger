@@ -17,9 +17,8 @@ public class TabTagMixin {
 
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Text injectTabTier(Text original) {
-        PlayerListEntry self = (PlayerListEntry) (Object) this;
 
-        // Orijinal null olsa bile profile.name() al
+        PlayerListEntry self = (PlayerListEntry) (Object) this;
         Text baseName = original != null ? original : Text.literal(self.getProfile().name());
 
         if (!TierConfig.getBoolean(Config.TAB_TAG)) return baseName;
@@ -29,7 +28,7 @@ public class TabTagMixin {
             return baseName;
         }
 
-        boolean isRightSide = TierConfig.getBoolean(Config.SIDE);
+        boolean isRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
         MutableText result = Text.empty();
         if (isRightSide) {
             return result.append(baseName)
