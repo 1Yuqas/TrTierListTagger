@@ -9,7 +9,7 @@ import net.minecraft.client.gui.widget.PlayerSkinWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.util.SkinTextures;
+import net.minecraft.client.util.DefaultSkinHelper;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
@@ -87,15 +87,14 @@ public class PlayerSearchScreen extends Screen {
                         GameProfile profile = new GameProfile(uuid, searchedName);
                         
                         client.execute(() -> {
-                            // Fetch skin supplier using modern SkinProvider
-                            Supplier<SkinTextures> skinSupplier = client.getSkinProvider().getSkinTexturesSupplier(profile);
+                            // Let the compiler tell us the type
+                            Object dummy = client.getSkinProvider().getSkinTexturesSupplier(profile);
                             
-                            // Create the 3D Player Widget (width, height, models, supplier)
-                            skinWidget = new PlayerSkinWidget(100, 150, client.getEntityModelLoader(), skinSupplier);
-                            skinWidget.setX(width / 2 - 110);
-                            skinWidget.setY(80);
+                            // skinWidget = new PlayerSkinWidget(100, 150, client.getEntityModelLoader(), (java.util.function.Supplier)dummy);
+                            // skinWidget.setX(width / 2 - 110);
+                            // skinWidget.setY(80);
                             
-                            this.addDrawableChild(skinWidget);
+                            // this.addDrawableChild(skinWidget);
                             updateVisibility();
                         });
                     }
