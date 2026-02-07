@@ -1,18 +1,15 @@
 package one.yuqas.utils.ui;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.PlayerSkinWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.OtherClientPlayerEntity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.util.SkinTextures;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
@@ -21,20 +18,16 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 public class PlayerSearchScreen extends Screen {
-
     private final Screen parent;
     private TextFieldWidget searchField;
     private ButtonWidget searchButton;
     private String searchedName = "";
     private List<Text> foundTiers;
     private boolean isSearching;
-    private AbstractClientPlayerEntity renderPlayer;
-
-    private boolean rotating;
-    private double lastMouseX;
-    private float yaw = 180f;
+    private PlayerSkinWidget skinWidget;
 
     public PlayerSearchScreen(Screen parent) {
         super(Text.literal("Oyuncu Arama"));
@@ -66,6 +59,7 @@ public class PlayerSearchScreen extends Screen {
         boolean showSearch = !isSearching && (searchedName == null || searchedName.isEmpty());
         if (searchField != null) searchField.visible = showSearch;
         if (searchButton != null) searchButton.visible = showSearch;
+        if (skinWidget != null) skinWidget.visible = !showSearch;
     }
 
     private void startSearch() {
@@ -74,7 +68,6 @@ public class PlayerSearchScreen extends Screen {
 
         isSearching = true;
         foundTiers = null;
-        renderPlayer = null;
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
@@ -91,16 +84,19 @@ public class PlayerSearchScreen extends Screen {
                         String formattedId = id.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
                         UUID uuid = UUID.fromString(formattedId);
 
-                        // Fill profile with textures for external players
-                        GameProfile profile = client.getSessionService().fillProfileProperties(new GameProfile(uuid, searchedName), true);
+                        GameProfile profile = new GameProfile(uuid, searchedName);
                         
                         client.execute(() -> {
-                            if (client.world != null) {
-                                OtherClientPlayerEntity entity = new OtherClientPlayerEntity(client.world, profile);
-                                // Enable 3D layers (outer skin layers)
-                                entity.getDataTracker().set(PlayerEntity.PLAYER_MODEL_PARTS, (byte) 127);
-                                renderPlayer = entity;
-                            }
+                            // Fetch skin supplier using modern SkinProvider
+                            Supplier<SkinTextures> skinSupplier = client.getSkinProvider().getSkinTexturesSupplier(profile);
+                            
+                            // Create the 3D Player Widget (width, height, models, supplier)
+                            skinWidget = new PlayerSkinWidget(100, 150, client.getEntityModelLoader(), skinSupplier);
+                            skinWidget.setX(width / 2 - 110);
+                            skinWidget.setY(80);
+                            
+                            this.addDrawableChild(skinWidget);
+                            updateVisibility();
                         });
                     }
                 }
@@ -134,19 +130,8 @@ public class PlayerSearchScreen extends Screen {
                     // Profile Title
                     ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(searchedName + "'s profile").styled(s -> s.withColor(0xCCFFFFFF)), cx, 30, 0xCCFFFFFF);
 
-                    // Skin Rendering
-                    if (renderPlayer != null) {
-                        renderPlayer.setYaw(yaw);
-                        renderPlayer.setHeadYaw(yaw);
-                        renderPlayer.bodyYaw = yaw;
-
-                        InventoryScreen.drawEntity(ctx, cx - 110, 80, cx - 10, 240, 70, 0.0625F, (float)mouseX, (float)mouseY, renderPlayer);
-                    } else {
-                        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("3D Karakter sadece oyundayken görünür").styled(s -> s.withColor(0x88AAAAAA)), cx - 60, 150, 0x88AAAAAA);
-                    }
-
-                    // Rankings
-                    int rankingsX = cx + 20;
+                    // Rankings (Right side of the skin)
+                    int rankingsX = cx + 10;
                     int y = 90;
                     ctx.drawTextWithShadow(textRenderer, Text.literal("Rankings:").styled(s -> s.withColor(0xCCFFFFFF)), rankingsX, y, 0xCCFFFFFF);
                     y += 15;
@@ -169,7 +154,6 @@ public class PlayerSearchScreen extends Screen {
                         searchedName = "";
                         searchField.setText("");
                         isSearching = false;
-                        renderPlayer = null;
                         this.clearChildren();
                         this.init();
                     }).dimensions(cx - 80, this.height - 55, 160, 20).build());
@@ -183,27 +167,16 @@ public class PlayerSearchScreen extends Screen {
 
     @Override
     public boolean mouseClicked(Click click, boolean bl) {
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-            rotating = true;
-            lastMouseX = click.x();
-            return true;
-        }
         return super.mouseClicked(click, bl);
     }
 
     @Override
     public boolean mouseReleased(Click click) {
-        rotating = false;
         return super.mouseReleased(click);
     }
 
     @Override
     public boolean mouseDragged(Click click, double dx, double dy) {
-        if (rotating) {
-            yaw += (click.x() - lastMouseX) * 0.5f;
-            lastMouseX = click.x();
-            return true;
-        }
         return super.mouseDragged(click, dx, dy);
     }
 
