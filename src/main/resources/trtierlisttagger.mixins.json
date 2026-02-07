@@ -6,12 +6,13 @@
 		"PlayerEntityMixin",
 		"CacheResetMixin",
 		"EscMenuMixin",
-		"TabTagMixin"
+		"TabTagMixin",
+		"accessor.ClickableWidgetAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1
 	},
 	"overwrites": {
-		"requireAnnotations": true
+		"requireAnnotations": false
 	}
 }

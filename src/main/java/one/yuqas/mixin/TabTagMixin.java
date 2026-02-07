@@ -2,6 +2,7 @@ package one.yuqas.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
@@ -16,38 +17,28 @@ public class TabTagMixin {
 
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Text injectTabTier(Text original) {
-        if (!TierConfig.getBoolean(Config.TAB_TAG) || original == null) return original;
-
         PlayerListEntry self = (PlayerListEntry) (Object) this;
 
-        // GameProfile.name private, reflection ile alıyoruz
-        String playerName;
-        try {
-            java.lang.reflect.Field nameField = self.getProfile().getClass().getDeclaredField("name");
-            nameField.setAccessible(true);
-            playerName = (String) nameField.get(self.getProfile());
-        } catch (Exception e) {
-            return original; // Hata olursa orijinali döndür
-        }
+        // Orijinal null olsa bile profile.name() al
+        Text baseName = original != null ? original : Text.literal(self.getProfile().name());
 
-        if (playerName == null || playerName.isEmpty()) return original;
+        if (!TierConfig.getBoolean(Config.TAB_TAG)) return baseName;
 
-        Text tierText = APIUtils.getFormattedTier(TierType.BEST, playerName);
+        Text tierText = APIUtils.getFormattedTier(TierType.BEST, self.getProfile().name());
         if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
-            return original;
+            return baseName;
         }
 
-        boolean isRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
+        boolean isRightSide = TierConfig.getBoolean(Config.SIDE);
         MutableText result = Text.empty();
-
         if (isRightSide) {
-            return result.append(original)
+            return result.append(baseName)
                     .append(Text.literal(" §7| ").formatted(net.minecraft.util.Formatting.GRAY))
                     .append(tierText);
         } else {
             return result.append(tierText)
                     .append(Text.literal(" §7| ").formatted(net.minecraft.util.Formatting.GRAY))
-                    .append(original);
+                    .append(baseName);
         }
     }
 }
