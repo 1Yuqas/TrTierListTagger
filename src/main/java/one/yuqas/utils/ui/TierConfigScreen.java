@@ -87,7 +87,18 @@ public class TierConfigScreen extends Screen {
 
         // Arka plan paneli (Sade ve kaliteli bir görünüm için hafif karartma)
         context.fill(centerX - 120, 30, centerX + 120, 230, 0x88000000);
-        context.drawBorder(centerX - 120, 30, 240, 200, 0xFF555555);
+        
+        // Kenarlık (Manual drawing for compatibility)
+        int x1 = centerX - 120;
+        int y1 = 30;
+        int x2 = centerX + 120;
+        int y2 = 230;
+        int borderColor = 0xFF555555;
+        
+        context.fill(x1, y1, x2, y1 + 1, borderColor); // Üst
+        context.fill(x1, y2 - 1, x2, y2, borderColor); // Alt
+        context.fill(x1, y1 + 1, x1 + 1, y2 - 1, borderColor); // Sol
+        context.fill(x2 - 1, y1 + 1, x2, y2 - 1, borderColor); // Sağ
 
         // Başlık (Altın sarısı/Beyaz karışımı asil bir görünüm)
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 40, 0xFFCC00);
