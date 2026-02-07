@@ -8,7 +8,8 @@
 	"icon": "assets/trtierlisttagger/logo.png",
 	"environment": "*",
 	"entrypoints": {
-		"main": ["one.yuqas.TrTierListTagger"]
+		"main": ["one.yuqas.TrTierListTagger"],
+		"modmenu": ["one.yuqas.utils.ui.ModMenuIntegration"]
 	},
 	"mixins": ["trtierlisttagger.mixins.json"],
 	"depends": {
