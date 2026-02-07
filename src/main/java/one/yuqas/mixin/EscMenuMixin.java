@@ -4,7 +4,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.GameMenuScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import one.yuqas.utils.ui.TierConfigScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,20 +22,18 @@ public abstract class EscMenuMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void addButton(CallbackInfo ci) {
-        int buttonWidth = 100;
-        int buttonHeight = 20;
+        int buttonSize = 20; // kare buton
 
-        int x = (this.width - buttonWidth) / 2;
-        int y = this.height / 2 - buttonHeight;
+        int x = (this.width - buttonSize) / 2;
+        int y = this.height / 2 - buttonSize;
 
-        Text buttonText = Text.empty()
-                .append(Text.literal("TR").styled(style -> style.withColor(0xFF5555)))
-                .append(Text.literal("TierList").styled(style -> style.withColor(0xFFFFFF)));
+        Text buttonText = Text.literal("\uE991").formatted(Formatting.RED);
 
-        this.addDrawableChild(
-                ButtonWidget.builder(buttonText, button ->
-                        MinecraftClient.getInstance().setScreen(new TierConfigScreen(this))
-                ).dimensions(x, y, buttonWidth, buttonHeight).build()
-        );
+        ButtonWidget button = ButtonWidget.builder(buttonText, b ->
+                        MinecraftClient.getInstance().setScreen(new TierConfigScreen(this)))
+                .dimensions(x, y, buttonSize, buttonSize)
+                .build();
+
+        this.addDrawableChild(button);
     }
 }

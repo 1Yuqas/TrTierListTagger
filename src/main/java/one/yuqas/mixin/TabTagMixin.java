@@ -16,11 +16,23 @@ public class TabTagMixin {
 
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Text injectTabTier(Text original) {
-        if (!TierConfig.getBoolean(Config.TAB_TAG)) return original;
+        if (!TierConfig.getBoolean(Config.TAB_TAG) || original == null) return original;
 
         PlayerListEntry self = (PlayerListEntry) (Object) this;
-        Text tierText = APIUtils.getFormattedTier(TierType.BEST, self.getProfile().name());
 
+        // GameProfile.name private, reflection ile alıyoruz
+        String playerName;
+        try {
+            java.lang.reflect.Field nameField = self.getProfile().getClass().getDeclaredField("name");
+            nameField.setAccessible(true);
+            playerName = (String) nameField.get(self.getProfile());
+        } catch (Exception e) {
+            return original; // Hata olursa orijinali döndür
+        }
+
+        if (playerName == null || playerName.isEmpty()) return original;
+
+        Text tierText = APIUtils.getFormattedTier(TierType.BEST, playerName);
         if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
             return original;
         }

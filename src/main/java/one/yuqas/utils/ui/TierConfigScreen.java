@@ -81,11 +81,11 @@ public class TierConfigScreen extends Screen {
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Kaydet").styled(s -> s.withColor(0x2ECC71)), btn -> {
             save();
             this.client.setScreen(parent);
-        }).dimensions(centerX - 105, 190, 100, 20).build());
+        }).dimensions(centerX - 105, 255, 100, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Vazgeç").styled(s -> s.withColor(0xE74C3C)), btn -> {
             this.client.setScreen(parent);
-        }).dimensions(centerX + 5, 190, 100, 20).build());
+        }).dimensions(centerX + 5, 255, 100, 20).build());
     }
 
     private Text getStatusText(String prefix, boolean val) {
