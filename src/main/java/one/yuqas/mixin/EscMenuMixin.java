@@ -20,10 +20,20 @@ public abstract class EscMenuMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void addButton(CallbackInfo ci) {
-        int x = this.width - 102;
-        int y = this.height - 26;
-        Text buttonText = Text.empty().append(Text.literal("TR").styled(style -> style.withColor(0xFF5555))).append(Text.literal("TierList").styled(style -> style.withColor(0xFFFFFF)));
-        this.addDrawableChild(ButtonWidget.builder(buttonText, button -> MinecraftClient.getInstance().setScreen(new TierConfigScreen(this))).dimensions(x, y, 100, 20).build()
+        int buttonWidth = 100;
+        int buttonHeight = 20;
+
+        int x = (this.width - buttonWidth) / 2;
+        int y = this.height / 2 - buttonHeight;
+
+        Text buttonText = Text.empty()
+                .append(Text.literal("TR").styled(style -> style.withColor(0xFF5555)))
+                .append(Text.literal("TierList").styled(style -> style.withColor(0xFFFFFF)));
+
+        this.addDrawableChild(
+                ButtonWidget.builder(buttonText, button ->
+                        MinecraftClient.getInstance().setScreen(new TierConfigScreen(this))
+                ).dimensions(x, y, buttonWidth, buttonHeight).build()
         );
     }
 }
