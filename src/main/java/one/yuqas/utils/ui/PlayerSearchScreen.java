@@ -7,10 +7,11 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
-import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -88,7 +89,7 @@ public class PlayerSearchScreen extends Screen {
 
                 // Player Skin Render
                 if (dummyPlayer != null) {
-                    InventoryScreen.drawEntity(context, centerX - 80, 160, 40, new Quaternionf().rotateY((float) Math.toRadians(180)), null, dummyPlayer);
+                    InventoryScreen.drawEntity(context, centerX - 100, 100, centerX - 60, 160, 30, 0.0625F, mouseX, mouseY, dummyPlayer);
                 }
 
                 int y = 100;
@@ -111,18 +112,18 @@ public class PlayerSearchScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+    public boolean keyPressed(KeyInput input) {
+        if (input.key() == GLFW.GLFW_KEY_ENTER || input.key() == GLFW.GLFW_KEY_KP_ENTER) {
             startSearch();
             return true;
         }
-        if (searchField.keyPressed(keyCode, scanCode, modifiers)) return true;
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        if (searchField.keyPressed(input)) return true;
+        return super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(char chr, int modifiers) {
-        if (searchField.charTyped(chr, modifiers)) return true;
-        return super.charTyped(chr, modifiers);
+    public boolean charTyped(CharInput input) {
+        if (searchField.charTyped(input)) return true;
+        return super.charTyped(input);
     }
 }
