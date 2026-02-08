@@ -3,10 +3,10 @@ name: Gradle Build
 on:
   push:
     branches:
-      - 1.20.1
+      - 1.21.11
   pull_request:
     branches:
-      - 1.20.1
+      - 1.21.11
 
 jobs:
   build:
