@@ -75,7 +75,7 @@ public class APIUtils {
 
                     JsonObject rankings = json.getAsJsonObject("rankings");
                     ConcurrentHashMap<TierType, Text> map = new ConcurrentHashMap<>();
-                    ERRORS.remove(key); // Clear any previous errors
+                    ERRORS.remove(key);
 
                     for (TierType type : TierType.values()) {
                         if (type == TierType.BEST) continue;
@@ -87,7 +87,6 @@ public class APIUtils {
                                 int colorValue = tierName.startsWith("HT") ?
                                         new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
 
-                                // Format: [Icon] Type: Tier
                                 String typeName = type.name().substring(0, 1).toUpperCase() + type.name().substring(1).toLowerCase();
                                 Text formatted = Text.empty()
                                         .append(Text.literal(type.getIcon() + " "))
