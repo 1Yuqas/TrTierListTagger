@@ -6,6 +6,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.PlayerSkinWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
@@ -66,12 +67,14 @@ public class PlayerSearchScreen extends Screen {
                         GameProfile profile = new GameProfile(uuid, searchedName);
 
                         client.execute(() -> {
-                            // PlayerSkinWidget constructor: (width, height, entityModelLoader)
-                            skinWidget = new PlayerSkinWidget(100, 150, client.getEntityModelLoader());
+                            // PlayerSkinWidget constructor - sadece boyutlar
+                            skinWidget = new PlayerSkinWidget(100, 150);
                             skinWidget.setPosition(width / 2 - 50, 110);
                             
-                            // Skin texture'ı ayarla
-                            skinWidget.setSkinTextures(client.getSkinProvider().getSkinTextures(profile));
+                            // Skin texture'ı ayarla - fetchSkinTextures metodu kullanılıyor
+                            client.getSkinProvider().fetchSkinTextures(profile).thenAccept(textures -> {
+                                client.execute(() -> skinWidget.setSkinTextures(textures));
+                            });
                             
                             this.addDrawableChild(skinWidget);
                             isSearching = false;
@@ -98,11 +101,11 @@ public class PlayerSearchScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_ENTER) { 
+    public boolean keyPressed(KeyInput input) {
+        if (input.keyCode == GLFW.GLFW_KEY_ENTER) { 
             startSearch(); 
             return true; 
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(input);
     }
 }
