@@ -99,7 +99,7 @@ public class PlayerSearchScreen extends Screen {
                         if (this.client.world != null) {
                             this.client.execute(() -> {
                                 dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
-                                this.client.getSkinProvider().fetchSkinTextures(profile);
+                                this.client.getSkinProvider().loadSkin(profile);
                             });
                         }
                     }
@@ -134,7 +134,24 @@ public class PlayerSearchScreen extends Screen {
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s profile").styled(s -> s.withColor(0xCCFFFFFF)), centerX, 30, 0xCCFFFFFF);
 
                     if (dummyPlayer != null) {
-                        InventoryScreen.drawEntity(context, centerX - 100, 80, centerX - 20, 220, 60, 0.0625F, mouseX, mouseY, dummyPlayer);
+                        int left = centerX - 100;
+                        int right = centerX - 20;
+                        int top = 80;
+                        int bottom = 220;
+
+                        int size = (bottom - top) / 2;
+                        int x = (left + right) / 2;
+                        int y = bottom;
+
+                        InventoryScreen.drawEntity(
+                                context,
+                                x,
+                                y,
+                                size,
+                                x - mouseX,   // 🔥 X ters
+                                y - mouseY,   // Y aynı
+                                dummyPlayer
+                        );
                     }
 
                     int rankingsX = centerX + 10;
