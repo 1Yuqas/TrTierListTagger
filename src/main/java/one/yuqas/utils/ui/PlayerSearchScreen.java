@@ -7,8 +7,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.gui.widget.PlayerSkinWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.render.entity.PlayerModelPart;
-import net.minecraft.client.util.SkinTextures;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import one.yuqas.utils.APIUtils;
@@ -97,7 +95,7 @@ public class PlayerSearchScreen extends Screen {
                             skinWidget = new PlayerSkinWidget(
                                 100, 150,
                                 client.getEntityModels(),
-                                () -> client.getSkinProvider().fetchSkinTextures(profile).join().orElse(SkinTextures.EMPTY)
+                                () -> client.getSkinProvider().fetchSkinTextures(profile).join().orElse(null)
                             );
                             
                             // Widget'ı ekranda ortala (solda)
