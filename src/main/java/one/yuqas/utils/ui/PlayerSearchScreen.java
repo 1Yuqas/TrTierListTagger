@@ -27,10 +27,18 @@ public class PlayerSearchScreen extends Screen {
     private List<Text> foundTiers = null;
     private boolean isSearching = false;
     private OtherClientPlayerEntity dummyPlayer = null;
+    private final String presetName;
 
     public PlayerSearchScreen(Screen parent) {
         super(Text.literal("Oyuncu Arama"));
         this.parent = parent;
+        this.presetName = null;
+    }
+
+    public PlayerSearchScreen(Screen parent, String presetName) {
+        super(Text.literal("Oyuncu Arama"));
+        this.parent = parent;
+        this.presetName = presetName;
     }
 
     @Override
@@ -52,6 +60,11 @@ public class PlayerSearchScreen extends Screen {
         }).dimensions(centerX - 80, this.height - 30, 160, 20).build());
 
         updateVisibility();
+
+        if (presetName != null && !presetName.isEmpty()) {
+            searchField.setText(presetName);
+            startSearch();
+        }
     }
 
     private void updateVisibility() {
@@ -120,15 +133,12 @@ public class PlayerSearchScreen extends Screen {
                 } else {
                     foundTiers = APIUtils.getAllTiers(searchedName);
 
-                    // Top profile title
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s profile").styled(s -> s.withColor(0xCCFFFFFF)), centerX, 30, 0xCCFFFFFF);
 
-                    // Player Skin Render (Left side)
                     if (dummyPlayer != null) {
                         InventoryScreen.drawEntity(context, centerX - 100, 80, centerX - 20, 220, 60, 0.0625F, mouseX, mouseY, dummyPlayer);
                     }
 
-                    // Rankings Header (Right side)
                     int rankingsX = centerX + 10;
                     int y = 90;
                     context.drawTextWithShadow(this.textRenderer, Text.literal("Rankings:").styled(s -> s.withColor(0xCCFFFFFF)), rankingsX, y, 0xCCFFFFFF);
@@ -144,7 +154,6 @@ public class PlayerSearchScreen extends Screen {
                     }
                 }
 
-                // "Yeni Arama" button centered
                 if (this.children().stream().noneMatch(c -> c instanceof ButtonWidget && ((ButtonWidget)c).getMessage().getString().equals("Yeni Arama"))) {
                     this.addDrawableChild(ButtonWidget.builder(Text.literal("Yeni Arama").styled(s -> s.withColor(0x3498DB)), btn -> {
                         searchedName = "";
