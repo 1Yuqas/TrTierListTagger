@@ -7,8 +7,6 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
@@ -163,24 +161,24 @@ public class PlayerSearchScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        if (input.key() == GLFW.GLFW_KEY_ENTER || input.key() == GLFW.GLFW_KEY_KP_ENTER) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             if (searchField.visible && !searchField.getText().isEmpty()) {
                 startSearch();
                 return true;
             }
         }
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             this.client.setScreen(parent);
             return true;
         }
-        if (searchField.keyPressed(input)) return true;
-        return super.keyPressed(input);
+        if (searchField.keyPressed(keyCode, scanCode, modifiers)) return true;
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean charTyped(CharInput input) {
-        if (searchField.charTyped(input)) return true;
-        return super.charTyped(input);
+    public boolean charTyped(char chr, int modifiers) {
+        if (searchField.charTyped(chr, modifiers)) return true;
+        return super.charTyped(chr, modifiers);
     }
 }
