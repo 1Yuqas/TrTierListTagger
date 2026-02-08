@@ -3,7 +3,6 @@ package one.yuqas.utils.ui;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 import one.yuqas.utils.TierConfig;
 import one.yuqas.utils.enums.Config;
@@ -53,7 +52,6 @@ public class TierConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 100, 135, 200, 20).build());
 
-        // Tab menüsü etiket ayarları
         isTabEnabled = TierConfig.getBoolean(Config.TAB_TAG);
         this.addDrawableChild(ButtonWidget.builder(
                 getStatusText("Tab Menüsünde Etiket: ", isTabEnabled),
@@ -61,7 +59,7 @@ public class TierConfigScreen extends Screen {
                     isTabEnabled = !isTabEnabled;
                     btn.setMessage(getStatusText("Tab Menüsünde Etiket: ", isTabEnabled));
                 }
-        ).dimensions(centerX - 100, 160, 200, 20).build());
+        ).dimensions(centerX - 100, 175, 200, 20).build());
 
         isTabRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
         this.addDrawableChild(ButtonWidget.builder(
@@ -70,22 +68,20 @@ public class TierConfigScreen extends Screen {
                     isTabRightSide = !isTabRightSide;
                     btn.setMessage(getTabSideText(isTabRightSide));
                 }
-        ).dimensions(centerX - 100, 200, 200, 20).build());
+        ).dimensions(centerX - 100, 215, 200, 20).build());
 
-        // Arama Butonu
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Oyuncu Ara").styled(s -> s.withColor(0xFFCC00)), btn -> {
             this.client.setScreen(new PlayerSearchScreen(this));
-        }).dimensions(centerX - 100, 225, 200, 20).build());
+        }).dimensions(centerX - 100, 250, 200, 20).build());
 
-        // Alt butonlar - Daha yakın ve toplu
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Kaydet").styled(s -> s.withColor(0x2ECC71)), btn -> {
             save();
             this.client.setScreen(parent);
-        }).dimensions(centerX - 105, 255, 100, 20).build());
+        }).dimensions(centerX - 105, 275, 100, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Vazgeç").styled(s -> s.withColor(0xE74C3C)), btn -> {
             this.client.setScreen(parent);
-        }).dimensions(centerX + 5, 255, 100, 20).build());
+        }).dimensions(centerX + 5, 275, 100, 20).build());
     }
 
     private Text getStatusText(String prefix, boolean val) {
@@ -118,23 +114,21 @@ public class TierConfigScreen extends Screen {
 
         int centerX = this.width / 2;
 
-        // Başlık (Altın sarısı/Beyaz karışımı asil bir görünüm)
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 15, 0xFFCC00);
 
-        // Açıklama Metinleri (Soft Gri) - Butonlara daha yakın
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 45, 0xCCCCCC);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 85, 0xCCCCCC);
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 125, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_TAG.getDescription()), centerX, 150, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_SIDE.getDescription()), centerX, 190, 0xCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_TAG.getDescription()), centerX, 165, 0xCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_SIDE.getDescription()), centerX, 205, 0xCCCCCC);
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             this.client.setScreen(parent);
             return true;
         }
-        return super.keyPressed(input);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 }
