@@ -1,33 +1,38 @@
 package one.yuqas.utils.ui;
 
 import com.mojang.authlib.GameProfile;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 import java.util.UUID;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.UUID;
-
 public class PlayerSearchScreen extends Screen {
+
     private final Screen parent;
     private TextFieldWidget searchField;
+    private ButtonWidget searchButton;
     private String searchedName = "";
-    private String foundPlayerName = null;
-    private UUID foundPlayerUUID = null;
+    private List<Text> foundTiers;
     private boolean isSearching;
-    private boolean isLoadingTiers = false;
-    private String errorMessage = null;
-    private List<Text> tierList = null;
+    private AbstractClientPlayerEntity renderPlayer;
+
+    private boolean rotating;
+    private double lastMouseX;
+    private float yaw = 180f;
 
     public PlayerSearchScreen(Screen parent) {
         super(Text.literal("Oyuncu Arama"));
@@ -38,18 +43,16 @@ public class PlayerSearchScreen extends Screen {
     protected void init() {
         int cx = width / 2;
 
-        // Arama Alanı
         searchField = new TextFieldWidget(textRenderer, cx - 80, 60, 160, 20, Text.literal("Oyuncu Adı..."));
         searchField.setMaxLength(16);
         addSelectableChild(searchField);
         searchField.setFocused(true);
 
-        // Ara Butonu
-        addDrawableChild(ButtonWidget.builder(Text.literal("Ara"), b -> startSearch())
+        searchButton = ButtonWidget.builder(Text.literal("Ara"), b -> startSearch())
                 .dimensions(cx - 80, 85, 160, 20)
-                .build());
+                .build();
+        addDrawableChild(searchButton);
 
-        // Geri Butonu
         addDrawableChild(ButtonWidget.builder(Text.literal("Bitti"), b -> client.setScreen(parent))
                 .dimensions(cx - 80, height - 30, 160, 20)
                 .build());
@@ -60,141 +63,106 @@ public class PlayerSearchScreen extends Screen {
         if (searchedName.isEmpty()) return;
 
         isSearching = true;
-        foundPlayerName = null;
-        foundPlayerUUID = null;
-        errorMessage = null;
-        tierList = null;
-        isLoadingTiers = false;
+        foundTiers = null;
+        renderPlayer = null;
+        APIUtils.fetchSync(searchedName);
 
         new Thread(() -> {
             try {
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                if (con.getResponseCode() == 200) {
-                    try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
-                        com.google.gson.JsonObject json = new com.google.gson.Gson().fromJson(reader, com.google.gson.JsonObject.class);
-                        String id = json.get("id").getAsString();
-                        String name = json.get("name").getAsString();
-                        String formattedId = id.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
-                        UUID uuid = UUID.fromString(formattedId);
+                if (con.getResponseCode() != 200) return;
 
-                        GameProfile profile = new GameProfile(uuid, name);
-                        
-                        client.execute(() -> {
-                            foundPlayerName = name;
-                            foundPlayerUUID = uuid;
-                            isSearching = false;
-                            
-                            // Tier bilgilerini yükle
-                            isLoadingTiers = true;
-                            APIUtils.fetchSync(name);
-                            
-                            // Tier'leri kontrol et (birkaç deneme yap)
-                            new Thread(() -> {
-                                for (int i = 0; i < 10; i++) {
-                                    try { Thread.sleep(500); } catch (Exception ignored) {}
-                                    if (APIUtils.hasData(name)) {
-                                        List<Text> tiers = APIUtils.getAllTiers(name);
-                                        String error = APIUtils.getError(name);
-                                        client.execute(() -> {
-                                            if (error != null) {
-                                                tierList = List.of(Text.literal("⚠ " + error).formatted(Formatting.GOLD));
-                                            } else if (tiers != null && !tiers.isEmpty()) {
-                                                tierList = tiers;
-                                            } else {
-                                                tierList = List.of(Text.literal("Tier bilgisi yok").formatted(Formatting.GRAY));
-                                            }
-                                            isLoadingTiers = false;
-                                        });
-                                        break;
-                                    }
-                                }
-                                // Timeout durumu
-                                if (isLoadingTiers) {
-                                    client.execute(() -> {
-                                        tierList = List.of(Text.literal("Tier yüklenemedi").formatted(Formatting.RED));
-                                        isLoadingTiers = false;
-                                    });
-                                }
-                            }).start();
-                        });
-                    }
-                } else {
-                    client.execute(() -> {
-                        errorMessage = "Oyuncu bulunamadı!";
-                        isSearching = false;
-                    });
+                com.google.gson.JsonObject json;
+                try (var r = new java.io.InputStreamReader(con.getInputStream())) {
+                    json = new com.google.gson.Gson().fromJson(r, com.google.gson.JsonObject.class);
                 }
-            } catch (Exception e) { 
-                e.printStackTrace(); 
+
+                UUID uuid = UUID.fromString(json.get("id").getAsString().replaceFirst(
+                        "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})",
+                        "$1-$2-$3-$4-$5"
+                ));
+
+                GameProfile profile = new GameProfile(uuid, searchedName);
+
                 client.execute(() -> {
-                    errorMessage = "Hata: " + e.getMessage();
-                    isSearching = false;
+                    client.getSkinProvider().fetchSkinTextures(profile);
+                    if (client.world != null) {
+                        renderPlayer = new OtherClientPlayerEntity(client.world, profile);
+                    } else if (client.player != null) {
+                        renderPlayer = client.player;
+                    }
                 });
+
+            } catch (Exception ignored) {
             }
         }).start();
     }
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        renderBackground(ctx, mouseX, mouseY, delta);
         super.render(ctx, mouseX, mouseY, delta);
+        int cx = width / 2;
+
         searchField.render(ctx, mouseX, mouseY, delta);
-        
-        if (isSearching) {
-            ctx.drawCenteredTextWithShadow(textRenderer, "Aranıyor...", width / 2, 120, 0xFFFFFF);
-        } else if (foundPlayerName != null) {
-            // Tier bilgilerini ortalanmış şekilde göster
-            int yPos = 120;
-            
-            // Başlık
-            ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("✓ Oyuncu Bulundu").formatted(Formatting.GREEN, Formatting.BOLD), width / 2, yPos, 0x55FF55);
-            yPos += 20;
-            
-            // İsim
-            ctx.drawCenteredTextWithShadow(textRenderer, 
-                Text.literal("İsim: ").formatted(Formatting.GRAY)
-                    .append(Text.literal(foundPlayerName).formatted(Formatting.YELLOW, Formatting.BOLD)), 
-                width / 2, yPos, 0xFFFFFF);
-            yPos += 25;
-            
-            // Tier Başlığı
-            ctx.drawCenteredTextWithShadow(textRenderer, 
-                Text.literal("━━━ TİER BİLGİLERİ ━━━").formatted(Formatting.AQUA), 
-                width / 2, yPos, 0x55FFFF);
-            yPos += 18;
-            
-            // Tier'ler
-            if (isLoadingTiers) {
-                ctx.drawCenteredTextWithShadow(textRenderer, 
-                    Text.literal("⏳ Yükleniyor...").formatted(Formatting.YELLOW), 
-                    width / 2, yPos, 0xFFFF55);
-            } else if (tierList != null && !tierList.isEmpty()) {
-                for (Text tier : tierList) {
-                    ctx.drawCenteredTextWithShadow(textRenderer, tier, width / 2, yPos, 0xFFFFFF);
-                    yPos += 15;
-                }
-            } else {
-                ctx.drawCenteredTextWithShadow(textRenderer, 
-                    Text.literal("Tier bilgisi bekleniyor...").formatted(Formatting.GRAY), 
-                    width / 2, yPos, 0xAAAAAA);
-            }
-            
-            // UUID (en altta küçük - ortalı)
-            ctx.drawCenteredTextWithShadow(textRenderer, 
-                Text.literal("UUID: " + foundPlayerUUID.toString()).formatted(Formatting.DARK_GRAY), 
-                width / 2, height - 50, 0x555555);
-        } else if (errorMessage != null) {
-            ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(errorMessage).formatted(Formatting.RED), width / 2, 120, 0xFF5555);
+
+        if (renderPlayer != null) {
+            renderPlayer.setYaw(yaw);
+            renderPlayer.setHeadYaw(yaw);
+            renderPlayer.bodyYaw = yaw;
+
+            InventoryScreen.drawEntity(
+                    ctx,
+                    cx - 120,
+                    100,
+                    cx - 20,
+                    260,
+                    80,
+                    0.0625F,
+                    mouseX,
+                    mouseY,
+                    renderPlayer
+            );
         }
     }
 
     @Override
+    public boolean mouseClicked(Click click, boolean bl) {
+        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+            rotating = true;
+            lastMouseX = click.x();
+            return true;
+        }
+        return super.mouseClicked(click, bl);
+    }
+
+    @Override
+    public boolean mouseReleased(Click click) {
+        rotating = false;
+        return super.mouseReleased(click);
+    }
+
+    @Override
+    public boolean mouseDragged(Click click, double dx, double dy) {
+        if (rotating) {
+            yaw += (click.x() - lastMouseX) * 0.5f;
+            lastMouseX = click.x();
+            return true;
+        }
+        return super.mouseDragged(click, dx, dy);
+    }
+
+    @Override
     public boolean keyPressed(KeyInput input) {
-        if (input.key() == GLFW.GLFW_KEY_ENTER) { 
-            startSearch(); 
-            return true; 
+        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
+            client.setScreen(parent);
+            return true;
         }
         return super.keyPressed(input);
+    }
+
+    @Override
+    public boolean charTyped(CharInput input) {
+        return searchField.charTyped(input) || super.charTyped(input);
     }
 }
