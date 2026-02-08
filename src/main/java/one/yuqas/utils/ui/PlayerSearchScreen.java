@@ -1,17 +1,23 @@
 package one.yuqas.utils.ui;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.input.KeyInput;
-// import net.minecraft.client.gui.widget.PlayerSkinWidget; // Geçici olarak devre dışı
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,14 +28,15 @@ import java.util.UUID;
 public class PlayerSearchScreen extends Screen {
     private final Screen parent;
     private TextFieldWidget searchField;
-    // PlayerSkinWidget skinWidget; // Geçici olarak devre dışı - API uyumsuzluğu
     private String searchedName = "";
     private String foundPlayerName = null;
     private UUID foundPlayerUUID = null;
     private boolean isSearching;
     private boolean isLoadingTiers = false;
+    private boolean isLoadingSkin = false;
     private String errorMessage = null;
     private List<Text> tierList = null;
+    private Identifier skinTextureId = null;
 
     public PlayerSearchScreen(Screen parent) {
         super(Text.literal("Oyuncu Arama"));
@@ -67,6 +74,8 @@ public class PlayerSearchScreen extends Screen {
         errorMessage = null;
         tierList = null;
         isLoadingTiers = false;
+        skinTextureId = null;
+        isLoadingSkin = false;
 
         new Thread(() -> {
             try {
@@ -87,8 +96,47 @@ public class PlayerSearchScreen extends Screen {
                             foundPlayerUUID = uuid;
                             isSearching = false;
                             
-                            // TODO: 3D Skin Widget - Şimdilik devre dışı (API uyumsuzluğu)
-                            // Minecraft 1.21.11'de PlayerSkinWidget constructor'ı farklı çalışıyor
+                            // NMSR API'den 3D skin görüntüsü yükle
+                            isLoadingSkin = true;
+                            new Thread(() -> {
+                                try {
+                                    // NMSR API - 3D full body render
+                                    String nmsrUrl = "https://nmsr.nickac.dev/fullbody/" + uuid.toString() + "?size=512";
+                                    java.net.URL url = new java.net.URL(nmsrUrl);
+                                    java.net.HttpURLConnection con = (java.net.HttpURLConnection) url.openConnection();
+                                    con.setConnectTimeout(5000);
+                                    con.setReadTimeout(5000);
+                                    
+                                    try (InputStream stream = con.getInputStream()) {
+                                        BufferedImage bufferedImage = ImageIO.read(stream);
+                                        if (bufferedImage != null) {
+                                            // BufferedImage'i NativeImage'e dönüştür
+                                            NativeImage nativeImage = new NativeImage(bufferedImage.getWidth(), bufferedImage.getHeight(), true);
+                                            for (int y = 0; y < bufferedImage.getHeight(); y++) {
+                                                for (int x = 0; x < bufferedImage.getWidth(); x++) {
+                                                    int argb = bufferedImage.getRGB(x, y);
+                                                    nativeImage.setColor(x, y, argb);
+                                                }
+                                            }
+                                            
+                                            client.execute(() -> {
+                                                // Texture'ı kaydet
+                                                Identifier texId = client.getTextureManager().registerDynamicTexture(
+                                                    "nmsr_skin_" + uuid.toString(),
+                                                    new NativeImageBackedTexture(nativeImage)
+                                                );
+                                                skinTextureId = texId;
+                                                isLoadingSkin = false;
+                                            });
+                                        } else {
+                                            client.execute(() -> isLoadingSkin = false);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    client.execute(() -> isLoadingSkin = false);
+                                }
+                            }).start();
                             
                             // Tier bilgilerini yükle
                             isLoadingTiers = true;
@@ -149,40 +197,58 @@ public class PlayerSearchScreen extends Screen {
         if (isSearching) {
             ctx.drawCenteredTextWithShadow(textRenderer, "Aranıyor...", width / 2, 120, 0xFFFFFF);
         } else if (foundPlayerName != null) {
-            // Tier bilgilerini ortalanmış şekilde göster (3D karakter gelene kadar)
+            // 3D Skin render (NMSR API) - Sol tarafta
+            int skinX = width / 2 - 180;
+            int skinY = 120;
+            int skinSize = 150;
+            
+            if (isLoadingSkin) {
+                ctx.drawCenteredTextWithShadow(textRenderer, 
+                    Text.literal("⏳ Skin yükleniyor...").formatted(Formatting.GRAY), 
+                    skinX + skinSize / 2, skinY + skinSize / 2, 0xAAAAAA);
+            } else if (skinTextureId != null) {
+                // 3D Skin'i çiz
+                RenderSystem.setShaderTexture(0, skinTextureId);
+                ctx.drawTexture(skinTextureId, skinX, skinY, 0, 0, skinSize, skinSize, skinSize, skinSize);
+            }
+            
+            // Tier bilgilerini 3D skinin SAĞ YANINDA göster
+            int tierX = width / 2 - 10;
             int yPos = 120;
             
             // Başlık
-            ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("✓ Oyuncu Bulundu").formatted(Formatting.GREEN, Formatting.BOLD), width / 2, yPos, 0x55FF55);
+            ctx.drawTextWithShadow(textRenderer, 
+                Text.literal("✓ Oyuncu Bulundu").formatted(Formatting.GREEN, Formatting.BOLD), 
+                tierX, yPos, 0x55FF55);
             yPos += 20;
             
             // İsim
-            ctx.drawCenteredTextWithShadow(textRenderer, 
+            ctx.drawTextWithShadow(textRenderer, 
                 Text.literal("İsim: ").formatted(Formatting.GRAY)
                     .append(Text.literal(foundPlayerName).formatted(Formatting.YELLOW, Formatting.BOLD)), 
-                width / 2, yPos, 0xFFFFFF);
+                tierX, yPos, 0xFFFFFF);
             yPos += 25;
             
             // Tier Başlığı
-            ctx.drawCenteredTextWithShadow(textRenderer, 
+            ctx.drawTextWithShadow(textRenderer, 
                 Text.literal("━━━ TİER BİLGİLERİ ━━━").formatted(Formatting.AQUA), 
-                width / 2, yPos, 0x55FFFF);
+                tierX, yPos, 0x55FFFF);
             yPos += 18;
             
             // Tier'ler
             if (isLoadingTiers) {
-                ctx.drawCenteredTextWithShadow(textRenderer, 
+                ctx.drawTextWithShadow(textRenderer, 
                     Text.literal("⏳ Yükleniyor...").formatted(Formatting.YELLOW), 
-                    width / 2, yPos, 0xFFFF55);
+                    tierX, yPos, 0xFFFF55);
             } else if (tierList != null && !tierList.isEmpty()) {
                 for (Text tier : tierList) {
-                    ctx.drawCenteredTextWithShadow(textRenderer, tier, width / 2, yPos, 0xFFFFFF);
+                    ctx.drawTextWithShadow(textRenderer, tier, tierX, yPos, 0xFFFFFF);
                     yPos += 15;
                 }
             } else {
-                ctx.drawCenteredTextWithShadow(textRenderer, 
+                ctx.drawTextWithShadow(textRenderer, 
                     Text.literal("Tier bilgisi bekleniyor...").formatted(Formatting.GRAY), 
-                    width / 2, yPos, 0xAAAAAA);
+                    tierX, yPos, 0xAAAAAA);
             }
             
             // UUID (en altta küçük - ortalı)
