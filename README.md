@@ -22,6 +22,6 @@
 -
 **Oyuncu Arama**
 -
-<img src="image/img_2.png" width="245">
-<img src="image/img_1.png" width="400">
+<img src="image/img_2.png" width="240">
+<img src="image/img_1.png" width="300">
 
