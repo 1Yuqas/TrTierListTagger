@@ -5,7 +5,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.gui.widget.PlayerSkinWidget;
+// import net.minecraft.client.gui.widget.PlayerSkinWidget; // Geçici olarak devre dışı
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -22,7 +22,7 @@ import java.util.UUID;
 public class PlayerSearchScreen extends Screen {
     private final Screen parent;
     private TextFieldWidget searchField;
-    private PlayerSkinWidget skinWidget;
+    // PlayerSkinWidget skinWidget; // Geçici olarak devre dışı - API uyumsuzluğu
     private String searchedName = "";
     private String foundPlayerName = null;
     private UUID foundPlayerUUID = null;
@@ -87,27 +87,8 @@ public class PlayerSearchScreen extends Screen {
                             foundPlayerUUID = uuid;
                             isSearching = false;
                             
-                            // 3D Skin Widget oluştur
-                            if (skinWidget != null) {
-                                this.remove(skinWidget);
-                            }
-                            
-                            try {
-                                skinWidget = new PlayerSkinWidget(
-                                    100, 150,
-                                    client.getEntityRenderDispatcher().getModels(),
-                                    () -> client.getSkinProvider().fetchSkinTextures(profile).join().orElse(null)
-                                );
-                                
-                                // Widget'ı ekranda ortala (solda)
-                                int skinX = width / 2 - 150;
-                                int skinY = 140;
-                                skinWidget.setPosition(skinX, skinY);
-                                this.addDrawableChild(skinWidget);
-                            } catch (Exception e) {
-                                // Eğer PlayerSkinWidget başarısız olursa, sadece text göster
-                                e.printStackTrace();
-                            }
+                            // TODO: 3D Skin Widget - Şimdilik devre dışı (API uyumsuzluğu)
+                            // Minecraft 1.21.11'de PlayerSkinWidget constructor'ı farklı çalışıyor
                             
                             // Tier bilgilerini yükle
                             isLoadingTiers = true;
@@ -168,41 +149,40 @@ public class PlayerSearchScreen extends Screen {
         if (isSearching) {
             ctx.drawCenteredTextWithShadow(textRenderer, "Aranıyor...", width / 2, 120, 0xFFFFFF);
         } else if (foundPlayerName != null) {
-            // Tier bilgilerini 3D karakterin SAĞ YANINDA göster
-            int tierX = width / 2 - 30; // 3D karakterin sağında
+            // Tier bilgilerini ortalanmış şekilde göster (3D karakter gelene kadar)
             int yPos = 120;
             
             // Başlık
-            ctx.drawTextWithShadow(textRenderer, Text.literal("✓ Oyuncu Bulundu").formatted(Formatting.GREEN, Formatting.BOLD), tierX, yPos, 0x55FF55);
+            ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("✓ Oyuncu Bulundu").formatted(Formatting.GREEN, Formatting.BOLD), width / 2, yPos, 0x55FF55);
             yPos += 20;
             
             // İsim
-            ctx.drawTextWithShadow(textRenderer, 
+            ctx.drawCenteredTextWithShadow(textRenderer, 
                 Text.literal("İsim: ").formatted(Formatting.GRAY)
                     .append(Text.literal(foundPlayerName).formatted(Formatting.YELLOW, Formatting.BOLD)), 
-                tierX, yPos, 0xFFFFFF);
+                width / 2, yPos, 0xFFFFFF);
             yPos += 25;
             
             // Tier Başlığı
-            ctx.drawTextWithShadow(textRenderer, 
+            ctx.drawCenteredTextWithShadow(textRenderer, 
                 Text.literal("━━━ TİER BİLGİLERİ ━━━").formatted(Formatting.AQUA), 
-                tierX, yPos, 0x55FFFF);
+                width / 2, yPos, 0x55FFFF);
             yPos += 18;
             
             // Tier'ler
             if (isLoadingTiers) {
-                ctx.drawTextWithShadow(textRenderer, 
+                ctx.drawCenteredTextWithShadow(textRenderer, 
                     Text.literal("⏳ Yükleniyor...").formatted(Formatting.YELLOW), 
-                    tierX, yPos, 0xFFFF55);
+                    width / 2, yPos, 0xFFFF55);
             } else if (tierList != null && !tierList.isEmpty()) {
                 for (Text tier : tierList) {
-                    ctx.drawTextWithShadow(textRenderer, tier, tierX, yPos, 0xFFFFFF);
+                    ctx.drawCenteredTextWithShadow(textRenderer, tier, width / 2, yPos, 0xFFFFFF);
                     yPos += 15;
                 }
             } else {
-                ctx.drawTextWithShadow(textRenderer, 
+                ctx.drawCenteredTextWithShadow(textRenderer, 
                     Text.literal("Tier bilgisi bekleniyor...").formatted(Formatting.GRAY), 
-                    tierX, yPos, 0xAAAAAA);
+                    width / 2, yPos, 0xAAAAAA);
             }
             
             // UUID (en altta küçük - ortalı)
