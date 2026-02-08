@@ -1,4 +1,4 @@
-- ↳ **TrTierListTagger**
+# TrTierListTagger
 - ↳ 1.21.11    
   📄 [TrTierListTagger-1.21.11.zip](https://nightly.link/1Yuqas/TrTierListTagger/workflows/Gradle%20Build/1.21.11/TrTierListTagger-Snapshot.zip)
 - ↳ 1.21.4    
@@ -22,6 +22,6 @@
 -
 **Oyuncu Arama**
 -
-<img src="image/img_2.png" width="245">
-<img src="image/img_1.png" width="400">
+<img src="image/img_2.png" width="240">
+<img src="image/img_1.png" width="300">
 
