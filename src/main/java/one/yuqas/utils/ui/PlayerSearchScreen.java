@@ -98,41 +98,29 @@ public class PlayerSearchScreen extends Screen {
                             
                             // NMSR API'den 3D skin görüntüsü yükle
                             isLoadingSkin = true;
+                            String nmsrUrl = "https://nmsr.nickac.dev/fullbody/" + uuid.toString() + "?size=512";
+                            Identifier textureId = Identifier.of("trtierlisttagger", "skins/" + uuid.toString() + ".png");
+                            
+                            // HTTP üzerinden texture indir ve yükle
                             new Thread(() -> {
                                 try {
-                                    // NMSR API - 3D full body render
-                                    String nmsrUrl = "https://nmsr.nickac.dev/fullbody/" + uuid.toString() + "?size=512";
-                                    java.net.URL skinUrl = new java.net.URL(nmsrUrl);
-                                    java.net.HttpURLConnection skinCon = (java.net.HttpURLConnection) skinUrl.openConnection();
-                                    skinCon.setConnectTimeout(5000);
-                                    skinCon.setReadTimeout(5000);
+                                    java.net.URL imageUrl = new java.net.URL(nmsrUrl);
+                                    java.net.HttpURLConnection connection = (java.net.HttpURLConnection) imageUrl.openConnection();
+                                    connection.setConnectTimeout(5000);
+                                    connection.setReadTimeout(5000);
                                     
-                                    try (InputStream stream = skinCon.getInputStream()) {
-                                        BufferedImage bufferedImage = ImageIO.read(stream);
-                                        if (bufferedImage != null) {
-                                            // BufferedImage'i NativeImage'e dönüştür
-                                            NativeImage nativeImage = new NativeImage(bufferedImage.getWidth(), bufferedImage.getHeight(), true);
-                                            for (int y = 0; y < bufferedImage.getHeight(); y++) {
-                                                for (int x = 0; x < bufferedImage.getWidth(); x++) {
-                                                    int argb = bufferedImage.getRGB(x, y);
-                                                    nativeImage.setColor(x, y, argb);
-                                                }
-                                            }
-                                            
-                                            client.execute(() -> {
+                                    try (java.io.InputStream inputStream = connection.getInputStream()) {
+                                        client.execute(() -> {
+                                            try {
                                                 // Texture'ı kaydet
-                                                try {
-                                                    Identifier texId = Identifier.of("trtierlisttagger", "nmsr_skin_" + uuid.toString());
-                                                    client.getTextureManager().registerTexture(texId, new NativeImageBackedTexture(nativeImage));
-                                                    skinTextureId = texId;
-                                                } catch (Exception e) {
-                                                    e.printStackTrace();
-                                                }
-                                                isLoadingSkin = false;
-                                            });
-                                        } else {
-                                            client.execute(() -> isLoadingSkin = false);
-                                        }
+                                                NativeImage image = NativeImage.read(inputStream);
+                                                client.getTextureManager().registerTexture(textureId, new NativeImageBackedTexture(image));
+                                                skinTextureId = textureId;
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                            isLoadingSkin = false;
+                                        });
                                     }
                                 } catch (Exception e) {
                                     e.printStackTrace();
@@ -210,7 +198,7 @@ public class PlayerSearchScreen extends Screen {
                     skinX + skinSize / 2, skinY + skinSize / 2, 0xAAAAAA);
             } else if (skinTextureId != null) {
                 // 3D Skin'i çiz
-                ctx.drawTexture(skinTextureId, skinX, skinY, skinSize, skinSize, 0, 0, skinSize, skinSize, skinSize, skinSize);
+                ctx.drawTexture(skinTextureId, skinX, skinY, skinSize, skinSize, 0, 0, skinSize, skinSize, false, false);
             }
             
             // Tier bilgilerini 3D skinin SAĞ YANINDA göster
