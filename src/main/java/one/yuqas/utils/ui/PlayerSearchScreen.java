@@ -102,12 +102,12 @@ public class PlayerSearchScreen extends Screen {
                                 try {
                                     // NMSR API - 3D full body render
                                     String nmsrUrl = "https://nmsr.nickac.dev/fullbody/" + uuid.toString() + "?size=512";
-                                    java.net.URL url = new java.net.URL(nmsrUrl);
-                                    java.net.HttpURLConnection con = (java.net.HttpURLConnection) url.openConnection();
-                                    con.setConnectTimeout(5000);
-                                    con.setReadTimeout(5000);
+                                    java.net.URL skinUrl = new java.net.URL(nmsrUrl);
+                                    java.net.HttpURLConnection skinCon = (java.net.HttpURLConnection) skinUrl.openConnection();
+                                    skinCon.setConnectTimeout(5000);
+                                    skinCon.setReadTimeout(5000);
                                     
-                                    try (InputStream stream = con.getInputStream()) {
+                                    try (InputStream stream = skinCon.getInputStream()) {
                                         BufferedImage bufferedImage = ImageIO.read(stream);
                                         if (bufferedImage != null) {
                                             // BufferedImage'i NativeImage'e dönüştür
@@ -123,7 +123,7 @@ public class PlayerSearchScreen extends Screen {
                                                 // Texture'ı kaydet
                                                 Identifier texId = client.getTextureManager().registerDynamicTexture(
                                                     "nmsr_skin_" + uuid.toString(),
-                                                    new NativeImageBackedTexture(nativeImage)
+                                                    new NativeImageBackedTexture(() -> "nmsr_skin", nativeImage)
                                                 );
                                                 skinTextureId = texId;
                                                 isLoadingSkin = false;
@@ -208,7 +208,6 @@ public class PlayerSearchScreen extends Screen {
                     skinX + skinSize / 2, skinY + skinSize / 2, 0xAAAAAA);
             } else if (skinTextureId != null) {
                 // 3D Skin'i çiz
-                RenderSystem.setShaderTexture(0, skinTextureId);
                 ctx.drawTexture(skinTextureId, skinX, skinY, 0, 0, skinSize, skinSize, skinSize, skinSize);
             }
             
