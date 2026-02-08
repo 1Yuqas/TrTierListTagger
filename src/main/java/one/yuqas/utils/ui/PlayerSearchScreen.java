@@ -1,7 +1,7 @@
 package one.yuqas.utils.ui;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.gui.Click;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
@@ -9,7 +9,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
@@ -21,18 +20,13 @@ import java.util.List;
 import java.util.UUID;
 
 public class PlayerSearchScreen extends Screen {
-
     private final Screen parent;
     private TextFieldWidget searchField;
     private ButtonWidget searchButton;
     private String searchedName = "";
-    private List<Text> foundTiers;
-    private boolean isSearching;
-    private AbstractClientPlayerEntity renderPlayer;
-
-    private boolean rotating;
-    private double lastMouseX;
-    private float yaw = 180f;
+    private List<Text> foundTiers = null;
+    private boolean isSearching = false;
+    private OtherClientPlayerEntity dummyPlayer = null;
 
     public PlayerSearchScreen(Screen parent) {
         super(Text.literal("Oyuncu Arama"));
@@ -41,21 +35,29 @@ public class PlayerSearchScreen extends Screen {
 
     @Override
     protected void init() {
-        int cx = width / 2;
+        int centerX = this.width / 2;
 
-        searchField = new TextFieldWidget(textRenderer, cx - 80, 60, 160, 20, Text.literal("Oyuncu Adı..."));
+        searchField = new TextFieldWidget(this.textRenderer, centerX - 80, 60, 160, 20, Text.literal("Oyuncu Adı..."));
         searchField.setMaxLength(16);
-        addSelectableChild(searchField);
+        this.addSelectableChild(searchField);
         searchField.setFocused(true);
 
-        searchButton = ButtonWidget.builder(Text.literal("Ara"), b -> startSearch())
-                .dimensions(cx - 80, 85, 160, 20)
-                .build();
-        addDrawableChild(searchButton);
+        searchButton = ButtonWidget.builder(Text.literal("Ara").styled(s -> s.withColor(0x3498DB)), btn -> {
+            startSearch();
+        }).dimensions(centerX - 80, 85, 160, 20).build();
+        this.addDrawableChild(searchButton);
 
-        addDrawableChild(ButtonWidget.builder(Text.literal("Bitti"), b -> client.setScreen(parent))
-                .dimensions(cx - 80, height - 30, 160, 20)
-                .build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Bitti").styled(s -> s.withColor(0xCCCCCC)), btn -> {
+            this.client.setScreen(parent);
+        }).dimensions(centerX - 80, this.height - 30, 160, 20).build());
+
+        updateVisibility();
+    }
+
+    private void updateVisibility() {
+        boolean showSearch = !isSearching && (searchedName == null || searchedName.isEmpty());
+        searchField.visible = showSearch;
+        searchButton.visible = showSearch;
     }
 
     private void startSearch() {
@@ -64,105 +66,121 @@ public class PlayerSearchScreen extends Screen {
 
         isSearching = true;
         foundTiers = null;
-        renderPlayer = null;
+        dummyPlayer = null;
+        updateVisibility();
         APIUtils.fetchSync(searchedName);
-
+        
         new Thread(() -> {
             try {
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                if (con.getResponseCode() != 200) return;
+                con.setConnectTimeout(3000);
+                
+                if (con.getResponseCode() == 200) {
+                    try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
+                        com.google.gson.JsonObject json = new com.google.gson.Gson().fromJson(reader, com.google.gson.JsonObject.class);
+                        String id = json.get("id").getAsString();
+                        String formattedId = id.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
+                        UUID uuid = UUID.fromString(formattedId);
 
-                com.google.gson.JsonObject json;
-                try (var r = new java.io.InputStreamReader(con.getInputStream())) {
-                    json = new com.google.gson.Gson().fromJson(r, com.google.gson.JsonObject.class);
-                }
-
-                UUID uuid = UUID.fromString(json.get("id").getAsString().replaceFirst(
-                        "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})",
-                        "$1-$2-$3-$4-$5"
-                ));
-
-                GameProfile profile = new GameProfile(uuid, searchedName);
-
-                client.execute(() -> {
-                    client.getSkinProvider().fetchSkinTextures(profile);
-                    if (client.world != null) {
-                        renderPlayer = new OtherClientPlayerEntity(client.world, profile);
-                    } else if (client.player != null) {
-                        renderPlayer = client.player;
+                        GameProfile profile = new GameProfile(uuid, searchedName);
+                        
+                        if (this.client.world != null) {
+                            this.client.execute(() -> {
+                                dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
+                                this.client.getSkinProvider().fetchSkinTextures(profile);
+                            });
+                        }
                     }
-                });
-
-            } catch (Exception ignored) {
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }).start();
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
-        int cx = width / 2;
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        super.render(context, mouseX, mouseY, delta);
+        int centerX = this.width / 2;
 
-        searchField.render(ctx, mouseX, mouseY, delta);
-
-        if (renderPlayer != null) {
-            renderPlayer.setYaw(yaw);
-            renderPlayer.setHeadYaw(yaw);
-            renderPlayer.bodyYaw = yaw;
-
-            InventoryScreen.drawEntity(
-                    ctx,
-                    cx - 120,
-                    100,
-                    cx - 20,
-                    260,
-                    80,
-                    0.0625F,
-                    mouseX,
-                    mouseY,
-                    renderPlayer
-            );
+        if (searchField.visible) {
+            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("OYUNCU SORGULAMA").styled(s -> s.withBold(true).withColor(0xFFCC00)), centerX, 40, 0xFFCC00);
+            searchField.render(context, mouseX, mouseY, delta);
         }
-    }
 
-    @Override
-    public boolean mouseClicked(Click click, boolean bl) {
-        if (click.button() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-            rotating = true;
-            lastMouseX = click.x();
-            return true;
+        if (searchedName != null && !searchedName.isEmpty()) {
+            if (APIUtils.hasData(searchedName)) {
+                String error = APIUtils.getError(searchedName);
+                isSearching = false;
+
+                if (error != null) {
+                    context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName).styled(s -> s.withBold(true).withColor(0xCCFFFFFF)), centerX, 80, 0xCCFFFFFF);
+                    context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(error).styled(s -> s.withColor(0xCCFF5555)), centerX, 100, 0xCCFF5555);
+                } else {
+                    foundTiers = APIUtils.getAllTiers(searchedName);
+
+                    // Top profile title
+                    context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s profile").styled(s -> s.withColor(0xCCFFFFFF)), centerX, 30, 0xCCFFFFFF);
+
+                    // Player Skin Render (Left side)
+                    if (dummyPlayer != null) {
+                        InventoryScreen.drawEntity(context, centerX - 100, 80, centerX - 20, 220, 60, 0.0625F, mouseX, mouseY, dummyPlayer);
+                    }
+
+                    // Rankings Header (Right side)
+                    int rankingsX = centerX + 10;
+                    int y = 90;
+                    context.drawTextWithShadow(this.textRenderer, Text.literal("Rankings:").styled(s -> s.withColor(0xCCFFFFFF)), rankingsX, y, 0xCCFFFFFF);
+                    y += 15;
+
+                    if (foundTiers.isEmpty()) {
+                        context.drawTextWithShadow(this.textRenderer, Text.literal("Tier bulunmuyor").styled(s -> s.withColor(0xCCFF5555)), rankingsX, y, 0xCCFF5555);
+                    } else {
+                        for (Text tier : foundTiers) {
+                            context.drawTextWithShadow(this.textRenderer, tier, rankingsX, y, 0xCCFFFFFF);
+                            y += 12;
+                        }
+                    }
+                }
+
+                // "Yeni Arama" button centered
+                if (this.children().stream().noneMatch(c -> c instanceof ButtonWidget && ((ButtonWidget)c).getMessage().getString().equals("Yeni Arama"))) {
+                    this.addDrawableChild(ButtonWidget.builder(Text.literal("Yeni Arama").styled(s -> s.withColor(0x3498DB)), btn -> {
+                        searchedName = "";
+                        searchField.setText("");
+                        isSearching = false;
+                        dummyPlayer = null;
+                        this.clearChildren();
+                        this.init();
+                    }).dimensions(centerX - 80, this.height - 55, 160, 20).build());
+                }
+
+            } else if (isSearching) {
+                context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Sistemden Sorgulanıyor...").styled(s -> s.withColor(0x88AAAAAA)), centerX, 100, 0x88AAAAAA);
+            }
         }
-        return super.mouseClicked(click, bl);
-    }
-
-    @Override
-    public boolean mouseReleased(Click click) {
-        rotating = false;
-        return super.mouseReleased(click);
-    }
-
-    @Override
-    public boolean mouseDragged(Click click, double dx, double dy) {
-        if (rotating) {
-            yaw += (click.x() - lastMouseX) * 0.5f;
-            lastMouseX = click.x();
-            return true;
-        }
-        return super.mouseDragged(click, dx, dy);
     }
 
     @Override
     public boolean keyPressed(KeyInput input) {
+        if (input.key() == GLFW.GLFW_KEY_ENTER || input.key() == GLFW.GLFW_KEY_KP_ENTER) {
+            if (searchField.visible && !searchField.getText().isEmpty()) {
+                startSearch();
+                return true;
+            }
+        }
         if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
-            client.setScreen(parent);
+            this.client.setScreen(parent);
             return true;
         }
+        if (searchField.keyPressed(input)) return true;
         return super.keyPressed(input);
     }
 
     @Override
     public boolean charTyped(CharInput input) {
-        return searchField.charTyped(input) || super.charTyped(input);
+        if (searchField.charTyped(input)) return true;
+        return super.charTyped(input);
     }
 }
