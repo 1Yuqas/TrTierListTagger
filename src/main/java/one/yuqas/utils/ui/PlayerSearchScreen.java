@@ -92,17 +92,22 @@ public class PlayerSearchScreen extends Screen {
                                 this.remove(skinWidget);
                             }
                             
-                            skinWidget = new PlayerSkinWidget(
-                                100, 150,
-                                client.getEntityModels(),
-                                () -> client.getSkinProvider().fetchSkinTextures(profile).join().orElse(null)
-                            );
-                            
-                            // Widget'ı ekranda ortala (solda)
-                            int skinX = width / 2 - 150;
-                            int skinY = 140;
-                            skinWidget.setPosition(skinX, skinY);
-                            this.addDrawableChild(skinWidget);
+                            try {
+                                skinWidget = new PlayerSkinWidget(
+                                    100, 150,
+                                    client.getEntityRenderDispatcher().getModels(),
+                                    () -> client.getSkinProvider().fetchSkinTextures(profile).join().orElse(null)
+                                );
+                                
+                                // Widget'ı ekranda ortala (solda)
+                                int skinX = width / 2 - 150;
+                                int skinY = 140;
+                                skinWidget.setPosition(skinX, skinY);
+                                this.addDrawableChild(skinWidget);
+                            } catch (Exception e) {
+                                // Eğer PlayerSkinWidget başarısız olursa, sadece text göster
+                                e.printStackTrace();
+                            }
                             
                             // Tier bilgilerini yükle
                             isLoadingTiers = true;
