@@ -6,16 +6,12 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.PlayerSkinWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.SkinTextures;
 import net.minecraft.text.Text;
-import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.List;
 import java.util.UUID;
-import java.util.function.Supplier;
 
 public class PlayerSearchScreen extends Screen {
     private final Screen parent;
@@ -70,26 +66,32 @@ public class PlayerSearchScreen extends Screen {
                         GameProfile profile = new GameProfile(uuid, searchedName);
 
                         client.execute(() -> {
-                            // 1.21.x'te SkinTextures Supplier kullanımı
-                            Supplier<SkinTextures> skinSupplier = () -> client.getSkinProvider().getSkinTextures(profile);
+                            // PlayerSkinWidget constructor: (width, height, entityModelLoader)
+                            skinWidget = new PlayerSkinWidget(100, 150, client.getEntityModelLoader());
+                            skinWidget.setPosition(width / 2 - 50, 110);
                             
-                            // PlayerSkinWidget Minecraft'ın kendi içindeki 3D render widgetıdır
-                            skinWidget = new PlayerSkinWidget(100, 150, client.getEntityModelLoader(), skinSupplier);
-                            skinWidget.setX(width / 2 - 110);
-                            skinWidget.setY(50);
+                            // Skin texture'ı ayarla
+                            skinWidget.setSkinTextures(client.getSkinProvider().getSkinTextures(profile));
                             
                             this.addDrawableChild(skinWidget);
                             isSearching = false;
                         });
                     }
+                } else {
+                    client.execute(() -> isSearching = false);
                 }
-            } catch (Exception e) { e.printStackTrace(); isSearching = false; }
+            } catch (Exception e) { 
+                e.printStackTrace(); 
+                client.execute(() -> isSearching = false);
+            }
         }).start();
     }
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         super.render(ctx, mouseX, mouseY, delta);
+        searchField.render(ctx, mouseX, mouseY, delta);
+        
         if (isSearching) {
             ctx.drawCenteredTextWithShadow(textRenderer, "Aranıyor...", width / 2, 110, 0xFFAAAAAA);
         }
@@ -97,7 +99,10 @@ public class PlayerSearchScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_ENTER) { startSearch(); return true; }
+        if (keyCode == GLFW.GLFW_KEY_ENTER) { 
+            startSearch(); 
+            return true; 
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 }
