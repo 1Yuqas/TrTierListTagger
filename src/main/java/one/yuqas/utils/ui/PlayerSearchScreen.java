@@ -7,6 +7,8 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
@@ -25,18 +27,10 @@ public class PlayerSearchScreen extends Screen {
     private List<Text> foundTiers = null;
     private boolean isSearching = false;
     private OtherClientPlayerEntity dummyPlayer = null;
-    private final String presetName;
 
     public PlayerSearchScreen(Screen parent) {
         super(Text.literal("Oyuncu Arama"));
         this.parent = parent;
-        this.presetName = null;
-    }
-
-    public PlayerSearchScreen(Screen parent, String presetName) {
-        super(Text.literal("Oyuncu Arama"));
-        this.parent = parent;
-        this.presetName = presetName;
     }
 
     @Override
@@ -58,11 +52,6 @@ public class PlayerSearchScreen extends Screen {
         }).dimensions(centerX - 80, this.height - 30, 160, 20).build());
 
         updateVisibility();
-
-        if (presetName != null && !presetName.isEmpty()) {
-            searchField.setText(presetName);
-            startSearch();
-        }
     }
 
     private void updateVisibility() {
@@ -80,13 +69,13 @@ public class PlayerSearchScreen extends Screen {
         dummyPlayer = null;
         updateVisibility();
         APIUtils.fetchSync(searchedName);
-        
+
         new Thread(() -> {
             try {
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.setConnectTimeout(3000);
-                
+
                 if (con.getResponseCode() == 200) {
                     try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
                         com.google.gson.JsonObject json = new com.google.gson.Gson().fromJson(reader, com.google.gson.JsonObject.class);
@@ -95,11 +84,11 @@ public class PlayerSearchScreen extends Screen {
                         UUID uuid = UUID.fromString(formattedId);
 
                         GameProfile profile = new GameProfile(uuid, searchedName);
-                        
+
                         if (this.client.world != null) {
                             this.client.execute(() -> {
                                 dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
-                                this.client.getSkinProvider().loadSkin(profile);
+                                this.client.getSkinProvider().fetchSkinTextures(profile);
                             });
                         }
                     }
@@ -131,29 +120,15 @@ public class PlayerSearchScreen extends Screen {
                 } else {
                     foundTiers = APIUtils.getAllTiers(searchedName);
 
+                    // Top profile title
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s profile").styled(s -> s.withColor(0xCCFFFFFF)), centerX, 30, 0xCCFFFFFF);
 
+                    // Player Skin Render (Left side)
                     if (dummyPlayer != null) {
-                        int left = centerX - 100;
-                        int right = centerX - 20;
-                        int top = 80;
-                        int bottom = 220;
-
-                        int size = (bottom - top) / 2;
-                        int x = (left + right) / 2;
-                        int y = bottom;
-
-                        InventoryScreen.drawEntity(
-                                context,
-                                x,
-                                y,
-                                size,
-                                x - mouseX,   // 🔥 X ters
-                                y - mouseY,   // Y aynı
-                                dummyPlayer
-                        );
+                        InventoryScreen.drawEntity(context, centerX - 100, 80, centerX - 20, 220, 60, 0.0625F, mouseX, mouseY, dummyPlayer);
                     }
 
+                    // Rankings Header (Right side)
                     int rankingsX = centerX + 10;
                     int y = 90;
                     context.drawTextWithShadow(this.textRenderer, Text.literal("Rankings:").styled(s -> s.withColor(0xCCFFFFFF)), rankingsX, y, 0xCCFFFFFF);
@@ -169,6 +144,7 @@ public class PlayerSearchScreen extends Screen {
                     }
                 }
 
+                // "Yeni Arama" button centered
                 if (this.children().stream().noneMatch(c -> c instanceof ButtonWidget && ((ButtonWidget)c).getMessage().getString().equals("Yeni Arama"))) {
                     this.addDrawableChild(ButtonWidget.builder(Text.literal("Yeni Arama").styled(s -> s.withColor(0x3498DB)), btn -> {
                         searchedName = "";
@@ -187,30 +163,24 @@ public class PlayerSearchScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+    public boolean keyPressed(KeyInput input) {
+        if (input.key() == GLFW.GLFW_KEY_ENTER || input.key() == GLFW.GLFW_KEY_KP_ENTER) {
             if (searchField.visible && !searchField.getText().isEmpty()) {
                 startSearch();
                 return true;
             }
         }
-
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
             this.client.setScreen(parent);
             return true;
         }
-
-        if (searchField.keyPressed(keyCode, scanCode, modifiers)) {
-            return true;
-        }
-
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        if (searchField.keyPressed(input)) return true;
+        return super.keyPressed(input);
     }
+
     @Override
-    public boolean charTyped(char chr, int modifiers) {
-        if (searchField.charTyped(chr, modifiers)) {
-            return true;
-        }
-        return super.charTyped(chr, modifiers);
+    public boolean charTyped(CharInput input) {
+        if (searchField.charTyped(input)) return true;
+        return super.charTyped(input);
     }
 }

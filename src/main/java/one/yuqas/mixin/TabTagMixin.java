@@ -24,9 +24,9 @@ public class TabTagMixin {
         Text baseName = original;
         if (baseName == null) {
             if (self.getScoreboardTeam() != null) {
-                baseName = self.getScoreboardTeam().decorateName(Text.literal(self.getProfile().getName()));
+                baseName = self.getScoreboardTeam().decorateName(Text.literal(self.getProfile().name()));
             } else {
-                baseName = Text.literal(self.getProfile().getName());
+                baseName = Text.literal(self.getProfile().name());
             }
         }
 
@@ -64,7 +64,7 @@ public class TabTagMixin {
         try {
             PlayerListEntry self = (PlayerListEntry) (Object) this;
             if (self.getProfile() == null) return null;
-            return self.getProfile().getName();
+            return self.getProfile().name();
         } catch (Exception e) {
             return null;
         }
