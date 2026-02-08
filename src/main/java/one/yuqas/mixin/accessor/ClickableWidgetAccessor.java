@@ -15,6 +15,6 @@ public interface ClickableWidgetAccessor {
     @Accessor("width")
     int getWidth();
 
-    @Accessor("height")
+    @Accessor("height") 
     int getHeight();
 }
