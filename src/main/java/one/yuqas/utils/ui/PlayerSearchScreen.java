@@ -121,11 +121,13 @@ public class PlayerSearchScreen extends Screen {
                                             
                                             client.execute(() -> {
                                                 // Texture'ı kaydet
-                                                Identifier texId = client.getTextureManager().registerDynamicTexture(
-                                                    "nmsr_skin_" + uuid.toString(),
-                                                    new NativeImageBackedTexture(() -> "nmsr_skin", nativeImage)
-                                                );
-                                                skinTextureId = texId;
+                                                try {
+                                                    Identifier texId = Identifier.of("trtierlisttagger", "nmsr_skin_" + uuid.toString());
+                                                    client.getTextureManager().registerTexture(texId, new NativeImageBackedTexture(nativeImage));
+                                                    skinTextureId = texId;
+                                                } catch (Exception e) {
+                                                    e.printStackTrace();
+                                                }
                                                 isLoadingSkin = false;
                                             });
                                         } else {
@@ -208,7 +210,7 @@ public class PlayerSearchScreen extends Screen {
                     skinX + skinSize / 2, skinY + skinSize / 2, 0xAAAAAA);
             } else if (skinTextureId != null) {
                 // 3D Skin'i çiz
-                ctx.drawTexture(skinTextureId, skinX, skinY, 0, 0, skinSize, skinSize, skinSize, skinSize);
+                ctx.drawTexture(skinTextureId, skinX, skinY, skinSize, skinSize, 0, 0, skinSize, skinSize, skinSize, skinSize);
             }
             
             // Tier bilgilerini 3D skinin SAĞ YANINDA göster
