@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
+import one.yuqas.utils.ui.PlayerSearchScreen;
 import one.yuqas.utils.ui.TierConfigScreen;
 
 public class TierCommand {
@@ -12,7 +13,7 @@ public class TierCommand {
         MinecraftClient client = MinecraftClient.getInstance();
 
         dispatcher.register(
-                ClientCommandManager.literal("tiertagger")
+                ClientCommandManager.literal("trtiertagger")
                         .executes(context -> {
                             client.send(() -> client.setScreen(new TierConfigScreen(null)));
                             return 1;
@@ -30,7 +31,13 @@ public class TierCommand {
                                     return builder.buildFuture();
                                 })
                                 .executes(context -> {
-//                                    client.send(() -> client.setScreen(new OpenPlayerInfoGUI()));  ekky burayı yapcan
+                                    String player = StringArgumentType.getString(context, "player");
+                                    client.send(() ->
+                                            client.setScreen(new PlayerSearchScreen(
+                                                    client.currentScreen,
+                                                    player
+                                            ))
+                                    );
                                     return 1;
                                 }))
 
