@@ -1,23 +1,16 @@
 package one.yuqas.utils.ui;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,10 +26,8 @@ public class PlayerSearchScreen extends Screen {
     private UUID foundPlayerUUID = null;
     private boolean isSearching;
     private boolean isLoadingTiers = false;
-    private boolean isLoadingSkin = false;
     private String errorMessage = null;
     private List<Text> tierList = null;
-    private Identifier skinTextureId = null;
 
     public PlayerSearchScreen(Screen parent) {
         super(Text.literal("Oyuncu Arama"));
@@ -74,8 +65,6 @@ public class PlayerSearchScreen extends Screen {
         errorMessage = null;
         tierList = null;
         isLoadingTiers = false;
-        skinTextureId = null;
-        isLoadingSkin = false;
 
         new Thread(() -> {
             try {
@@ -95,38 +84,6 @@ public class PlayerSearchScreen extends Screen {
                             foundPlayerName = name;
                             foundPlayerUUID = uuid;
                             isSearching = false;
-                            
-                            // NMSR API'den 3D skin görüntüsü yükle
-                            isLoadingSkin = true;
-                            String nmsrUrl = "https://nmsr.nickac.dev/fullbody/" + uuid.toString() + "?size=512";
-                            Identifier textureId = Identifier.of("trtierlisttagger", "skins/" + uuid.toString() + ".png");
-                            
-                            // HTTP üzerinden texture indir ve yükle
-                            new Thread(() -> {
-                                try {
-                                    java.net.URL imageUrl = new java.net.URL(nmsrUrl);
-                                    java.net.HttpURLConnection connection = (java.net.HttpURLConnection) imageUrl.openConnection();
-                                    connection.setConnectTimeout(5000);
-                                    connection.setReadTimeout(5000);
-                                    
-                                    try (java.io.InputStream inputStream = connection.getInputStream()) {
-                                        client.execute(() -> {
-                                            try {
-                                                // Texture'ı kaydet
-                                                NativeImage image = NativeImage.read(inputStream);
-                                                client.getTextureManager().registerTexture(textureId, new NativeImageBackedTexture(image));
-                                                skinTextureId = textureId;
-                                            } catch (Exception e) {
-                                                e.printStackTrace();
-                                            }
-                                            isLoadingSkin = false;
-                                        });
-                                    }
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                    client.execute(() -> isLoadingSkin = false);
-                                }
-                            }).start();
                             
                             // Tier bilgilerini yükle
                             isLoadingTiers = true;
@@ -187,57 +144,40 @@ public class PlayerSearchScreen extends Screen {
         if (isSearching) {
             ctx.drawCenteredTextWithShadow(textRenderer, "Aranıyor...", width / 2, 120, 0xFFFFFF);
         } else if (foundPlayerName != null) {
-            // 3D Skin render (NMSR API) - Sol tarafta
-            int skinX = width / 2 - 180;
-            int skinY = 120;
-            int skinSize = 150;
-            
-            if (isLoadingSkin) {
-                ctx.drawCenteredTextWithShadow(textRenderer, 
-                    Text.literal("⏳ Skin yükleniyor...").formatted(Formatting.GRAY), 
-                    skinX + skinSize / 2, skinY + skinSize / 2, 0xAAAAAA);
-            } else if (skinTextureId != null) {
-                // 3D Skin'i çiz
-                ctx.drawTexture(skinTextureId, skinX, skinY, skinSize, skinSize, 0, 0, skinSize, skinSize, false, false);
-            }
-            
-            // Tier bilgilerini 3D skinin SAĞ YANINDA göster
-            int tierX = width / 2 - 10;
+            // Tier bilgilerini ortalanmış şekilde göster
             int yPos = 120;
             
             // Başlık
-            ctx.drawTextWithShadow(textRenderer, 
-                Text.literal("✓ Oyuncu Bulundu").formatted(Formatting.GREEN, Formatting.BOLD), 
-                tierX, yPos, 0x55FF55);
+            ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("✓ Oyuncu Bulundu").formatted(Formatting.GREEN, Formatting.BOLD), width / 2, yPos, 0x55FF55);
             yPos += 20;
             
             // İsim
-            ctx.drawTextWithShadow(textRenderer, 
+            ctx.drawCenteredTextWithShadow(textRenderer, 
                 Text.literal("İsim: ").formatted(Formatting.GRAY)
                     .append(Text.literal(foundPlayerName).formatted(Formatting.YELLOW, Formatting.BOLD)), 
-                tierX, yPos, 0xFFFFFF);
+                width / 2, yPos, 0xFFFFFF);
             yPos += 25;
             
             // Tier Başlığı
-            ctx.drawTextWithShadow(textRenderer, 
+            ctx.drawCenteredTextWithShadow(textRenderer, 
                 Text.literal("━━━ TİER BİLGİLERİ ━━━").formatted(Formatting.AQUA), 
-                tierX, yPos, 0x55FFFF);
+                width / 2, yPos, 0x55FFFF);
             yPos += 18;
             
             // Tier'ler
             if (isLoadingTiers) {
-                ctx.drawTextWithShadow(textRenderer, 
+                ctx.drawCenteredTextWithShadow(textRenderer, 
                     Text.literal("⏳ Yükleniyor...").formatted(Formatting.YELLOW), 
-                    tierX, yPos, 0xFFFF55);
+                    width / 2, yPos, 0xFFFF55);
             } else if (tierList != null && !tierList.isEmpty()) {
                 for (Text tier : tierList) {
-                    ctx.drawTextWithShadow(textRenderer, tier, tierX, yPos, 0xFFFFFF);
+                    ctx.drawCenteredTextWithShadow(textRenderer, tier, width / 2, yPos, 0xFFFFFF);
                     yPos += 15;
                 }
             } else {
-                ctx.drawTextWithShadow(textRenderer, 
+                ctx.drawCenteredTextWithShadow(textRenderer, 
                     Text.literal("Tier bilgisi bekleniyor...").formatted(Formatting.GRAY), 
-                    tierX, yPos, 0xAAAAAA);
+                    width / 2, yPos, 0xAAAAAA);
             }
             
             // UUID (en altta küçük - ortalı)
