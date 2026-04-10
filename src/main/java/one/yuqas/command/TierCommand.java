@@ -23,7 +23,6 @@ public class TierCommand {
                                 .suggests((context, builder) -> {
                                     var connection = minecraft.getConnection();
                                     if (connection != null) {
-                                        // getListedOnlinePlayers() kullanarak önerileri getir
                                         return SharedSuggestionProvider.suggest(
                                                 connection.getListedOnlinePlayers().stream()
                                                         .map(entry -> entry.getProfile().name()),

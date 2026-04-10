@@ -3,10 +3,10 @@ package one.yuqas.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.PauseScreen; // GameMenuScreen -> PauseScreen
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.ChatFormatting; // Formatting -> ChatFormatting
+import net.minecraft.ChatFormatting;
 import one.yuqas.utils.ui.TierConfigScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -9,7 +9,7 @@ import one.yuqas.utils.enums.Config;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class TierConfig {
+public class TierConfigUtil {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static JsonObject VALUES = new JsonObject();

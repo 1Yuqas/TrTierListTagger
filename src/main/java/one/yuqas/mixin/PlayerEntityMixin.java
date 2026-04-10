@@ -6,7 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import one.yuqas.utils.APIUtils;
-import one.yuqas.utils.TierConfig;
+import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
 import one.yuqas.utils.enums.TierType;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,7 +17,7 @@ public abstract class PlayerEntityMixin {
 
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Component injectTier(Component original) {
-        if (!TierConfig.getBoolean(Config.TAG)) return original;
+        if (!TierConfigUtil.getBoolean(Config.TAG)) return original;
 
         Player self = (Player) (Object) this;
 
@@ -27,8 +27,8 @@ public abstract class PlayerEntityMixin {
             return original;
         }
 
-        boolean isRightSide = TierConfig.getBoolean(Config.SIDE);
-        MutableComponent result = Component.empty(); // Text.empty() -> Component.empty()
+        boolean isRightSide = TierConfigUtil.getBoolean(Config.SIDE);
+        MutableComponent result = Component.empty();
 
         if (isRightSide) {
             return result.append(original)

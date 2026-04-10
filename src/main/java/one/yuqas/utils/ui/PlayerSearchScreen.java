@@ -50,7 +50,6 @@ public class PlayerSearchScreen extends Screen {
             this.addRenderableWidget(searchField);
             searchField.setFocused(true);
 
-            // 0x3498DB -> 0xFF3498DB yapıldı
             this.addRenderableWidget(Button.builder(Component.literal("Ara").withStyle(s -> s.withColor(0xFF3498DB)), btn -> {
                 startSearch();
             }).bounds(centerX - 80, 85, 160, 20).build());
@@ -65,7 +64,6 @@ public class PlayerSearchScreen extends Screen {
             }).bounds(centerX - 80, this.height - 55, 160, 20).build());
         }
 
-        // 0xCCCCCC -> 0xFFCCCCCC yapıldı
         this.addRenderableWidget(Button.builder(Component.literal("Bitti").withStyle(s -> s.withColor(0xFFCCCCCC)), btn -> {
             this.minecraft.setScreen(parent);
         }).bounds(centerX - 80, this.height - 30, 160, 20).build());
@@ -117,7 +115,6 @@ public class PlayerSearchScreen extends Screen {
         int centerX = this.width / 2;
 
         if (searchedName == null || searchedName.isEmpty()) {
-            // Başlık rengi düzeltildi
             graphics.centeredText(this.font, Component.literal("OYUNCU SORGULAMA").withStyle(s -> s.withBold(true).withColor(0xFFFFCC00)), centerX, 40, 0xFFFFCC00);
         } else {
             if (APIUtils.hasData(searchedName)) {

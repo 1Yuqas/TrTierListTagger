@@ -40,7 +40,7 @@ public class APIUtils {
             fetchAsync(playerName);
         }
 
-        return TierConfig.getBoolean(Config.SHOW_PLACEHOLDER) ? Component.literal("§7...") : Component.empty();
+        return TierConfigUtil.getBoolean(Config.SHOW_PLACEHOLDER) ? Component.literal("§7...") : Component.empty();
     }
 
     private static void fetchAsync(String playerName) {
@@ -90,7 +90,7 @@ public class APIUtils {
                                 String typeName = type.name().substring(0, 1).toUpperCase() + type.name().substring(1).toLowerCase();
                                 Component formatted = Component.empty()
                                         .append(Component.literal(type.getIcon() + " "))
-                                        .append(Component.literal(typeName + ": ").withStyle(style -> style.withColor(0xFF55FF))) // Purple color for type
+                                        .append(Component.literal(typeName + ": ").withStyle(style -> style.withColor(0xFF55FF))) // Purple
                                         .append(Component.literal(tierName).withStyle(style -> style.withColor(colorValue).withBold(true)));
                                 map.put(type, formatted);
                             }

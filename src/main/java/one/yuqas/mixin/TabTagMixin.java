@@ -6,7 +6,7 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import one.yuqas.utils.APIUtils;
-import one.yuqas.utils.TierConfig;
+import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
 import one.yuqas.utils.enums.TierType;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,22 +17,21 @@ public class TabTagMixin {
 
     private Component customTier = null;
 
-    @ModifyReturnValue(method = "getTabListDisplayName", at = @At("RETURN")) // getDisplayName -> getTabListDisplayName
+    @ModifyReturnValue(method = "getTabListDisplayName", at = @At("RETURN"))
     private Component injectTab(Component original) {
         PlayerInfo self = (PlayerInfo) (Object) this;
 
-        // Orijinal isim yoksa (null dönebiliyor), takım rengine veya profile göre isim oluştur
         Component baseName = original;
         if (baseName == null) {
-            if (self.getTeam() != null) { // getScoreboardTeam -> getTeam
-                baseName = self.getTeam().getFormattedName(Component.literal(self.getProfile().name())); // decorateName -> getFormattedName
+            if (self.getTeam() != null) {
+                baseName = self.getTeam().getFormattedName(Component.literal(self.getProfile().name()));
             } else {
                 baseName = Component.literal(self.getProfile().name());
             }
         }
 
         try {
-            if (!TierConfig.getBoolean(Config.TAB_TAG)) return baseName;
+            if (!TierConfigUtil.getBoolean(Config.TAB_TAG)) return baseName;
 
             String playerName = getPlayerName();
             if (playerName == null || playerName.isEmpty()) return baseName;
@@ -42,12 +41,11 @@ public class TabTagMixin {
                 tierText = APIUtils.getFormattedTier(TierType.BEST, playerName);
             }
 
-            // Veri yoksa veya yükleniyorsa orijinal ismi döndür
             if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
                 return baseName;
             }
 
-            boolean isRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
+            boolean isRightSide = TierConfigUtil.getBoolean(Config.TAB_SIDE);
             MutableComponent finalEntry = Component.empty();
             Component separator = Component.literal(" | ").withStyle(ChatFormatting.GRAY);
 
@@ -66,7 +64,7 @@ public class TabTagMixin {
         try {
             PlayerInfo self = (PlayerInfo) (Object) this;
             if (self.getProfile() == null) return null;
-            return self.getProfile().name(); // GameProfile bir record ise name() doğru
+            return self.getProfile().name();
         } catch (Exception e) {
             return null;
         }
