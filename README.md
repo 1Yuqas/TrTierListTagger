@@ -21,7 +21,7 @@
 **Taglar**
 -
 <img src="image/img.png" width="400">
--
+
 **Oyuncu Arama**
 -
 <img src="image/img_2.png" width="240">
