@@ -2,7 +2,7 @@ package one.yuqas.utils;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 import one.yuqas.utils.enums.Config;
 import one.yuqas.utils.enums.TierType;
 
@@ -18,7 +18,7 @@ public class APIUtils {
     private static final String API_URL = "https://api.trtierlist.com/api/profile/";
     private static final Gson GSON = new Gson();
 
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<TierType, Text>> CACHE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<TierType, Component>> CACHE = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, String> ERRORS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Long> FETCH_TIME = new ConcurrentHashMap<>();
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2);
@@ -27,8 +27,8 @@ public class APIUtils {
             "LT5","HT5", "LT4","HT4", "LT3","HT3", "LT2","HT2", "LT1","HT1"
     );
 
-    public static Text getFormattedTier(TierType type, String playerName) {
-        if (playerName == null || playerName.isEmpty()) return Text.empty();
+    public static Component getFormattedTier(TierType type, String playerName) {
+        if (playerName == null || playerName.isEmpty()) return Component.empty();
         String key = playerName.toLowerCase();
 
         if (CACHE.containsKey(key) && CACHE.get(key).containsKey(type)) {
@@ -40,7 +40,7 @@ public class APIUtils {
             fetchAsync(playerName);
         }
 
-        return TierConfig.getBoolean(Config.SHOW_PLACEHOLDER) ? Text.literal("§7...") : Text.empty();
+        return TierConfig.getBoolean(Config.SHOW_PLACEHOLDER) ? Component.literal("§7...") : Component.empty();
     }
 
     private static void fetchAsync(String playerName) {
@@ -74,7 +74,7 @@ public class APIUtils {
                     }
 
                     JsonObject rankings = json.getAsJsonObject("rankings");
-                    ConcurrentHashMap<TierType, Text> map = new ConcurrentHashMap<>();
+                    ConcurrentHashMap<TierType, Component> map = new ConcurrentHashMap<>();
                     ERRORS.remove(key);
 
                     for (TierType type : TierType.values()) {
@@ -88,10 +88,10 @@ public class APIUtils {
                                         new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
 
                                 String typeName = type.name().substring(0, 1).toUpperCase() + type.name().substring(1).toLowerCase();
-                                Text formatted = Text.empty()
-                                        .append(Text.literal(type.getIcon() + " "))
-                                        .append(Text.literal(typeName + ": ").styled(style -> style.withColor(0xFF55FF))) // Purple color for type
-                                        .append(Text.literal(tierName).styled(style -> style.withColor(colorValue).withBold(true)));
+                                Component formatted = Component.empty()
+                                        .append(Component.literal(type.getIcon() + " "))
+                                        .append(Component.literal(typeName + ": ").withStyle(style -> style.withColor(0xFF55FF))) // Purple color for type
+                                        .append(Component.literal(tierName).withStyle(style -> style.withColor(colorValue).withBold(true)));
                                 map.put(type, formatted);
                             }
                         }
@@ -103,9 +103,9 @@ public class APIUtils {
                         int colorValue = tierName.startsWith("HT") ?
                                 new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
 
-                        Text formattedTag = Text.empty()
-                                .append(Text.literal(best.type.getIcon() + " "))
-                                .append(Text.literal(tierName).styled(style -> style.withColor(colorValue).withBold(true)));
+                        Component formattedTag = Component.empty()
+                                .append(Component.literal(best.type.getIcon() + " "))
+                                .append(Component.literal(tierName).withStyle(style -> style.withColor(colorValue).withBold(true)));
 
                         map.put(TierType.BEST, formattedTag);
                     }
@@ -118,7 +118,7 @@ public class APIUtils {
         });
     }
 
-    public static List<Text> getAllTiers(String playerName) {
+    public static List<Component> getAllTiers(String playerName) {
         String key = playerName.toLowerCase();
         if (CACHE.containsKey(key)) {
             return CACHE.get(key).entrySet().stream()

@@ -1,10 +1,10 @@
 package one.yuqas.utils.ui;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.network.chat.Component;
 import one.yuqas.utils.TierConfig;
 import one.yuqas.utils.enums.Config;
 import org.lwjgl.glfw.GLFW;
@@ -18,7 +18,7 @@ public class TierConfigScreen extends Screen {
     private boolean isTabRightSide;
 
     public TierConfigScreen(Screen parent) {
-        super(Text.literal("TRTierList Ayarları"));
+        super(Component.literal("TRTierList Ayarları"));
         this.parent = parent;
     }
 
@@ -27,77 +27,77 @@ public class TierConfigScreen extends Screen {
         int centerX = this.width / 2;
 
         isEnabled = TierConfig.getBoolean(Config.TAG);
-        this.addDrawableChild(ButtonWidget.builder(
+        this.addRenderableWidget(Button.builder(
                 getStatusText("Etiket Görünümü: ", isEnabled),
                 btn -> {
                     isEnabled = !isEnabled;
                     btn.setMessage(getStatusText("Etiket Görünümü: ", isEnabled));
                 }
-        ).dimensions(centerX - 100, 55, 200, 20).build());
+        ).bounds(centerX - 100, 55, 200, 20).build());
 
         isRightSide = TierConfig.getBoolean(Config.SIDE);
-        this.addDrawableChild(ButtonWidget.builder(
+        this.addRenderableWidget(Button.builder(
                 getSideText(isRightSide),
                 btn -> {
                     isRightSide = !isRightSide;
                     btn.setMessage(getSideText(isRightSide));
                 }
-        ).dimensions(centerX - 100, 95, 200, 20).build());
+        ).bounds(centerX - 100, 95, 200, 20).build());
 
         placeholder = TierConfig.getBoolean(Config.SHOW_PLACEHOLDER);
-        this.addDrawableChild(ButtonWidget.builder(
+        this.addRenderableWidget(Button.builder(
                 getStatusText("Bekleme Göstergesi: ", placeholder),
                 btn -> {
                     placeholder = !placeholder;
                     btn.setMessage(getStatusText("Bekleme Göstergesi: ", placeholder));
                 }
-        ).dimensions(centerX - 100, 135, 200, 20).build());
+        ).bounds(centerX - 100, 135, 200, 20).build());
 
         isTabEnabled = TierConfig.getBoolean(Config.TAB_TAG);
-        this.addDrawableChild(ButtonWidget.builder(
+        this.addRenderableWidget(Button.builder(
                 getStatusText("Tab Menüsünde Etiket: ", isTabEnabled),
                 btn -> {
                     isTabEnabled = !isTabEnabled;
                     btn.setMessage(getStatusText("Tab Menüsünde Etiket: ", isTabEnabled));
                 }
-        ).dimensions(centerX - 100, 175, 200, 20).build());
+        ).bounds(centerX - 100, 175, 200, 20).build());
 
         isTabRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
-        this.addDrawableChild(ButtonWidget.builder(
+        this.addRenderableWidget(Button.builder(
                 getTabSideText(isTabRightSide),
                 btn -> {
                     isTabRightSide = !isTabRightSide;
                     btn.setMessage(getTabSideText(isTabRightSide));
                 }
-        ).dimensions(centerX - 100, 215, 200, 20).build());
+        ).bounds(centerX - 100, 215, 200, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Oyuncu Ara").styled(s -> s.withColor(0xFFCC00)), btn -> {
-            this.client.setScreen(new PlayerSearchScreen(this));
-        }).dimensions(centerX - 100, 250, 200, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Oyuncu Ara").withStyle(s -> s.withColor(0xFFFFCC00)), btn -> {
+            this.minecraft.setScreen(new PlayerSearchScreen(this));
+        }).bounds(centerX - 100, 250, 200, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Kaydet").styled(s -> s.withColor(0x2ECC71)), btn -> {
+        this.addRenderableWidget(Button.builder(Component.literal("Kaydet").withStyle(s -> s.withColor(0xFF2ECC71)), btn -> {
             save();
-            this.client.setScreen(parent);
-        }).dimensions(centerX - 105, 275, 100, 20).build());
+            this.minecraft.setScreen(parent);
+        }).bounds(centerX - 105, 275, 100, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Vazgeç").styled(s -> s.withColor(0xE74C3C)), btn -> {
-            this.client.setScreen(parent);
-        }).dimensions(centerX + 5, 275, 100, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Vazgeç").withStyle(s -> s.withColor(0xFFE74C3C)), btn -> {
+            this.minecraft.setScreen(parent);
+        }).bounds(centerX + 5, 275, 100, 20).build());
     }
 
-    private Text getStatusText(String prefix, boolean val) {
-        return Text.literal(prefix).append(Text.literal(val ? "AKTİF" : "PASİF")
-                .styled(style -> style.withColor(val ? 0x2ECC71 : 0xE74C3C)));
+    private Component getStatusText(String prefix, boolean val) {
+        return Component.literal(prefix).append(Component.literal(val ? "AKTİF" : "PASİF")
+                .withStyle(style -> style.withColor(val ? 0xFF2ECC71 : 0xFFE74C3C)));
     }
 
-    private Text getSideText(boolean isRight) {
-        return Text.literal("Etiket Konumu: ").append(Text.literal(isRight ? "SAĞ" : "SOL")
-                .styled(style -> style.withColor(0x3498DB)));
+    private Component getSideText(boolean isRight) {
+        return Component.literal("Etiket Konumu: ").append(Component.literal(isRight ? "SAĞ" : "SOL")
+                .withStyle(style -> style.withColor(0xFF3498DB)));
     }
 
-    private Text getTabSideText(boolean isRight) {
-        return Text.literal("Tab Konumu: ").append(Text.literal(isRight ? "SAĞ" : "SOL")
-                .styled(style -> style.withColor(0x3498DB)));
+    private Component getTabSideText(boolean isRight) {
+        return Component.literal("Tab Konumu: ").append(Component.literal(isRight ? "SAĞ" : "SOL")
+                .withStyle(style -> style.withColor(0xFF3498DB)));
     }
 
     private void save() {
@@ -110,25 +110,26 @@ public class TierConfigScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
+        super.extractRenderState(graphics, mouseX, mouseY, a);
 
         int centerX = this.width / 2;
 
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 15, 0xFFCC00);
+        graphics.centeredText(this.font, this.title, centerX, 15, 0xFFFFCC00);
 
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 45, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 85, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 125, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_TAG.getDescription()), centerX, 165, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_SIDE.getDescription()), centerX, 205, 0xCCCCCC);
+        graphics.centeredText(this.font, Component.literal(Config.TAG.getDescription()), centerX, 43, 0xFFAAAAAA);
+        graphics.centeredText(this.font, Component.literal(Config.SIDE.getDescription()), centerX, 83, 0xFFAAAAAA);
+        graphics.centeredText(this.font, Component.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 123, 0xFFAAAAAA);
+        graphics.centeredText(this.font, Component.literal(Config.TAB_TAG.getDescription()), centerX, 163, 0xFFAAAAAA);
+        graphics.centeredText(this.font, Component.literal(Config.TAB_SIDE.getDescription()), centerX, 203, 0xFFAAAAAA);
     }
+
     @Override
-    public boolean keyPressed(KeyInput input) {
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
-            this.client.setScreen(parent);
+    public boolean keyPressed(KeyEvent event) {
+        if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+            this.minecraft.setScreen(parent);
             return true;
         }
-        return super.keyPressed(input);
+        return super.keyPressed(event);
     }
 }

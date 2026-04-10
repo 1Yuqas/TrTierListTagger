@@ -1,16 +1,16 @@
 package one.yuqas.utils.ui;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.network.OtherClientPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.network.chat.Component;
 import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
 
@@ -21,22 +21,21 @@ import java.util.UUID;
 
 public class PlayerSearchScreen extends Screen {
     private final Screen parent;
-    private TextFieldWidget searchField;
-    private ButtonWidget searchButton;
+    private EditBox searchField;
     private String searchedName = "";
-    private List<Text> foundTiers = null;
+    private List<Component> foundTiers = null;
     private boolean isSearching = false;
-    private OtherClientPlayerEntity dummyPlayer = null;
+    private RemotePlayer dummyPlayer = null;
     private final String presetName;
 
     public PlayerSearchScreen(Screen parent) {
-        super(Text.literal("Oyuncu Arama"));
+        super(Component.literal("Oyuncu Arama"));
         this.parent = parent;
         this.presetName = null;
     }
 
     public PlayerSearchScreen(Screen parent, String presetName) {
-        super(Text.literal("Oyuncu Arama"));
+        super(Component.literal("Oyuncu Arama"));
         this.parent = parent;
         this.presetName = presetName;
     }
@@ -45,42 +44,44 @@ public class PlayerSearchScreen extends Screen {
     protected void init() {
         int centerX = this.width / 2;
 
-        searchField = new TextFieldWidget(this.textRenderer, centerX - 80, 60, 160, 20, Text.literal("Oyuncu Adı..."));
-        searchField.setMaxLength(16);
-        this.addSelectableChild(searchField);
-        searchField.setFocused(true);
+        if (!isSearching && (searchedName == null || searchedName.isEmpty())) {
+            searchField = new EditBox(this.font, centerX - 80, 60, 160, 20, Component.literal("Oyuncu Adı..."));
+            searchField.setMaxLength(16);
+            this.addRenderableWidget(searchField);
+            searchField.setFocused(true);
 
-        searchButton = ButtonWidget.builder(Text.literal("Ara").styled(s -> s.withColor(0x3498DB)), btn -> {
-            startSearch();
-        }).dimensions(centerX - 80, 85, 160, 20).build();
-        this.addDrawableChild(searchButton);
+            // 0x3498DB -> 0xFF3498DB yapıldı
+            this.addRenderableWidget(Button.builder(Component.literal("Ara").withStyle(s -> s.withColor(0xFF3498DB)), btn -> {
+                startSearch();
+            }).bounds(centerX - 80, 85, 160, 20).build());
+        }
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Bitti").styled(s -> s.withColor(0xCCCCCC)), btn -> {
-            this.client.setScreen(parent);
-        }).dimensions(centerX - 80, this.height - 30, 160, 20).build());
+        if (APIUtils.hasData(searchedName)) {
+            this.addRenderableWidget(Button.builder(Component.literal("Yeni Arama").withStyle(s -> s.withColor(0xFF3498DB)), btn -> {
+                searchedName = "";
+                isSearching = false;
+                dummyPlayer = null;
+                this.rebuildWidgets();
+            }).bounds(centerX - 80, this.height - 55, 160, 20).build());
+        }
 
-        updateVisibility();
+        // 0xCCCCCC -> 0xFFCCCCCC yapıldı
+        this.addRenderableWidget(Button.builder(Component.literal("Bitti").withStyle(s -> s.withColor(0xFFCCCCCC)), btn -> {
+            this.minecraft.setScreen(parent);
+        }).bounds(centerX - 80, this.height - 30, 160, 20).build());
 
-        if (presetName != null && !presetName.isEmpty()) {
-            searchField.setText(presetName);
+        if (presetName != null && !presetName.isEmpty() && searchedName.isEmpty()) {
+            searchField.setValue(presetName);
             startSearch();
         }
     }
 
-    private void updateVisibility() {
-        boolean showSearch = !isSearching && (searchedName == null || searchedName.isEmpty());
-        searchField.visible = showSearch;
-        searchButton.visible = showSearch;
-    }
-
     private void startSearch() {
-        searchedName = searchField.getText().trim();
+        searchedName = searchField.getValue().trim();
         if (searchedName.isEmpty()) return;
 
         isSearching = true;
-        foundTiers = null;
-        dummyPlayer = null;
-        updateVisibility();
+        this.rebuildWidgets();
         APIUtils.fetchSync(searchedName);
 
         new Thread(() -> {
@@ -97,11 +98,9 @@ public class PlayerSearchScreen extends Screen {
                         UUID uuid = UUID.fromString(formattedId);
 
                         GameProfile profile = new GameProfile(uuid, searchedName);
-
-                        if (this.client.world != null) {
-                            this.client.execute(() -> {
-                                dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
-                                this.client.getSkinProvider().fetchSkinTextures(profile);
+                        if (this.minecraft.level != null) {
+                            this.minecraft.execute(() -> {
+                                dummyPlayer = new RemotePlayer((ClientLevel) this.minecraft.level, profile);
                             });
                         }
                     }
@@ -113,83 +112,66 @@ public class PlayerSearchScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
+        super.extractRenderState(graphics, mouseX, mouseY, a);
         int centerX = this.width / 2;
 
-        if (searchField.visible) {
-            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("OYUNCU SORGULAMA").styled(s -> s.withBold(true).withColor(0xFFCC00)), centerX, 40, 0xFFCC00);
-            searchField.render(context, mouseX, mouseY, delta);
-        }
-
-        if (searchedName != null && !searchedName.isEmpty()) {
+        if (searchedName == null || searchedName.isEmpty()) {
+            // Başlık rengi düzeltildi
+            graphics.centeredText(this.font, Component.literal("OYUNCU SORGULAMA").withStyle(s -> s.withBold(true).withColor(0xFFFFCC00)), centerX, 40, 0xFFFFCC00);
+        } else {
             if (APIUtils.hasData(searchedName)) {
                 String error = APIUtils.getError(searchedName);
                 isSearching = false;
 
                 if (error != null) {
-                    context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName).styled(s -> s.withBold(true).withColor(0xCCFFFFFF)), centerX, 80, 0xCCFFFFFF);
-                    context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(error).styled(s -> s.withColor(0xCCFF5555)), centerX, 100, 0xCCFF5555);
+                    graphics.centeredText(this.font, Component.literal(searchedName).withStyle(s -> s.withBold(true).withColor(0xFFFFFFFF)), centerX, 80, 0xFFFFFFFF);
+                    graphics.centeredText(this.font, Component.literal(error).withStyle(s -> s.withColor(0xFFFF5555)), centerX, 100, 0xFFFF5555);
                 } else {
                     foundTiers = APIUtils.getAllTiers(searchedName);
-
-                    context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s profile").styled(s -> s.withColor(0xCCFFFFFF)), centerX, 30, 0xCCFFFFFF);
+                    graphics.centeredText(this.font, Component.literal(searchedName + "'s profile").withStyle(s -> s.withColor(0xFFFFFFFF)), centerX, 30, 0xFFFFFFFF);
 
                     if (dummyPlayer != null) {
-                        InventoryScreen.drawEntity(context, centerX - 100, 80, centerX - 20, 220, 60, 0.0625F, mouseX, mouseY, dummyPlayer);
+                        InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, centerX - 100, 80, centerX - 20, 220, 60, 0.0625F, mouseX, mouseY, dummyPlayer);
                     }
 
-                    int rankingsX = centerX + 10;
-                    int y = 90;
-                    context.drawTextWithShadow(this.textRenderer, Text.literal("Rankings:").styled(s -> s.withColor(0xCCFFFFFF)), rankingsX, y, 0xCCFFFFFF);
-                    y += 15;
+                    int ry = 90;
+                    graphics.text(this.font, Component.literal("Rankings:").withStyle(s -> s.withColor(0xFFFFFFFF)), centerX + 10, ry, 0xFFFFFFFF);
+                    ry += 15;
 
                     if (foundTiers.isEmpty()) {
-                        context.drawTextWithShadow(this.textRenderer, Text.literal("Tier bulunmuyor").styled(s -> s.withColor(0xCCFF5555)), rankingsX, y, 0xCCFF5555);
+                        graphics.text(this.font, Component.literal("Tier bulunmuyor").withStyle(s -> s.withColor(0xFFFF5555)), centerX + 10, ry, 0xFFFF5555);
                     } else {
-                        for (Text tier : foundTiers) {
-                            context.drawTextWithShadow(this.textRenderer, tier, rankingsX, y, 0xCCFFFFFF);
-                            y += 12;
+                        for (Component tier : foundTiers) {
+                            graphics.text(this.font, tier, centerX + 10, ry, 0xFFFFFFFF);
+                            ry += 12;
                         }
                     }
                 }
-
-                if (this.children().stream().noneMatch(c -> c instanceof ButtonWidget && ((ButtonWidget)c).getMessage().getString().equals("Yeni Arama"))) {
-                    this.addDrawableChild(ButtonWidget.builder(Text.literal("Yeni Arama").styled(s -> s.withColor(0x3498DB)), btn -> {
-                        searchedName = "";
-                        searchField.setText("");
-                        isSearching = false;
-                        dummyPlayer = null;
-                        this.clearChildren();
-                        this.init();
-                    }).dimensions(centerX - 80, this.height - 55, 160, 20).build());
-                }
-
             } else if (isSearching) {
-                context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Sistemden Sorgulanıyor...").styled(s -> s.withColor(0x88AAAAAA)), centerX, 100, 0x88AAAAAA);
+                graphics.centeredText(this.font, Component.literal("Sistemden Sorgulanıyor...").withStyle(s -> s.withColor(0xFFAAAAAA)), centerX, 100, 0xFFAAAAAA);
             }
         }
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        if (input.key() == GLFW.GLFW_KEY_ENTER || input.key() == GLFW.GLFW_KEY_KP_ENTER) {
-            if (searchField.visible && !searchField.getText().isEmpty()) {
+    public boolean keyPressed(KeyEvent event) {
+        if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
+            if (searchField != null && (searchedName == null || searchedName.isEmpty())) {
                 startSearch();
                 return true;
             }
         }
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
-            this.client.setScreen(parent);
+        if (event.isEscape()) {
+            this.minecraft.setScreen(parent);
             return true;
         }
-        if (searchField.keyPressed(input)) return true;
-        return super.keyPressed(input);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(CharInput input) {
-        if (searchField.charTyped(input)) return true;
-        return super.charTyped(input);
+    public boolean charTyped(CharacterEvent event) {
+        if (searchField != null && searchField.charTyped(event)) return true;
+        return super.charTyped(event);
     }
 }

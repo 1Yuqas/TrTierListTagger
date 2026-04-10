@@ -2,28 +2,30 @@ package one.yuqas.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
+import net.minecraft.commands.SharedSuggestionProvider;
 import one.yuqas.utils.ui.PlayerSearchScreen;
 import one.yuqas.utils.ui.TierConfigScreen;
 
 public class TierCommand {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft minecraft = Minecraft.getInstance();
 
         dispatcher.register(
-                ClientCommandManager.literal("trtiertagger")
+                ClientCommands.literal("trtiertagger")
                         .executes(context -> {
-                            client.send(() -> client.setScreen(new TierConfigScreen(null)));
+                            minecraft.execute(() -> minecraft.setScreen(new TierConfigScreen(null)));
                             return 1;
                         })
-                        .then(ClientCommandManager.argument("player", StringArgumentType.word())
+                        .then(ClientCommands.argument("player", StringArgumentType.word())
                                 .suggests((context, builder) -> {
-                                    var networkHandler = MinecraftClient.getInstance().getNetworkHandler();
-                                    if (networkHandler != null) {
-                                        return net.minecraft.command.CommandSource.suggestMatching(
-                                                networkHandler.getPlayerList().stream()
+                                    var connection = minecraft.getConnection();
+                                    if (connection != null) {
+                                        // getListedOnlinePlayers() kullanarak önerileri getir
+                                        return SharedSuggestionProvider.suggest(
+                                                connection.getListedOnlinePlayers().stream()
                                                         .map(entry -> entry.getProfile().name()),
                                                 builder
                                         );
@@ -32,15 +34,14 @@ public class TierCommand {
                                 })
                                 .executes(context -> {
                                     String player = StringArgumentType.getString(context, "player");
-                                    client.send(() ->
-                                            client.setScreen(new PlayerSearchScreen(
-                                                    client.currentScreen,
+                                    minecraft.execute(() ->
+                                            minecraft.setScreen(new PlayerSearchScreen(
+                                                    minecraft.screen,
                                                     player
                                             ))
                                     );
                                     return 1;
                                 }))
-
         );
     }
 }

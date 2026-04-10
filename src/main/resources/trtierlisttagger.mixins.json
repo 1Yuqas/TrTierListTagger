@@ -1,13 +1,12 @@
 {
 	"required": true,
 	"package": "one.yuqas.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"PlayerEntityMixin",
 		"CacheResetMixin",
 		"EscMenuMixin",
-		"TabTagMixin",
-		"accessor.ClickableWidgetAccessor"
+		"TabTagMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

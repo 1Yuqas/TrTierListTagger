@@ -8,7 +8,6 @@ import one.yuqas.utils.enums.Config;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 public class TierConfig {
 

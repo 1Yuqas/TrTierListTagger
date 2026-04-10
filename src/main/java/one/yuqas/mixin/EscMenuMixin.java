@@ -1,53 +1,52 @@
 package one.yuqas.mixin;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.GameMenuScreen;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import one.yuqas.mixin.accessor.ClickableWidgetAccessor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.PauseScreen; // GameMenuScreen -> PauseScreen
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting; // Formatting -> ChatFormatting
 import one.yuqas.utils.ui.TierConfigScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(GameMenuScreen.class)
+@Mixin(PauseScreen.class)
 public abstract class EscMenuMixin extends Screen {
 
-    protected EscMenuMixin(Text title) {
+    protected EscMenuMixin(Component title) {
         super(title);
     }
 
     @Inject(method = "init", at = @At("TAIL"))
     private void addButton(CallbackInfo ci) {
-        ButtonWidget settingsButton = null;
-        for (var child : this.children()) {
-            if (child instanceof ButtonWidget b) {
-                if (b.getMessage().getString().contains("Options") ||
-                        b.getMessage().getString().contains("Ayarlar")) {
+        Button settingsButton = null;
+
+        for (var renderable : this.children()) {
+            if (renderable instanceof Button b) {
+                String label = b.getMessage().getString();
+                if (label.contains("Options") || label.contains("Ayarlar")) {
                     settingsButton = b;
                     break;
                 }
             }
         }
+
         if (settingsButton == null) return;
 
-        ClickableWidgetAccessor acc = (ClickableWidgetAccessor) settingsButton;
-
         int buttonSize = 20;
-        int x = acc.getX() - buttonSize - 5;
-        int y = acc.getY() + (acc.getHeight() - buttonSize) / 2;
+        int x = settingsButton.getX() - buttonSize - 5;
+        int y = settingsButton.getY() + (settingsButton.getHeight() - buttonSize) / 2;
 
-        Text buttonText = Text.literal("\uE991").formatted(Formatting.RED);
+        Component buttonText = Component.literal("\uE991").withStyle(ChatFormatting.RED);
 
-        ButtonWidget button = ButtonWidget.builder(buttonText, b ->
-                        MinecraftClient.getInstance().setScreen(new TierConfigScreen(this)))
-                .dimensions(x, y, buttonSize, buttonSize)
-                .narrationSupplier(supplier -> Text.literal("Settings"))
+        Button customButton = Button.builder(buttonText, b ->
+                        Minecraft.getInstance().setScreen(new TierConfigScreen(this)))
+                .bounds(x, y, buttonSize, buttonSize)
                 .build();
 
-        this.addDrawableChild(button);
+        this.addRenderableWidget(customButton);
     }
 }
