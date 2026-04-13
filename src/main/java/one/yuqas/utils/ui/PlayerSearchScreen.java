@@ -81,7 +81,6 @@ public class PlayerSearchScreen extends Screen {
 
         new Thread(() -> {
             try {
-                // Senin yeni API3 adresin üzerinden UUID çekiyoruz
                 URL url = new URL("https://api.trtierlist.com/api3/profil/" + searchedName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.setConnectTimeout(5000);
@@ -91,7 +90,6 @@ public class PlayerSearchScreen extends Screen {
                         JsonObject json = new Gson().fromJson(reader, JsonObject.class);
                         String rawId = json.get("uuid").getAsString();
                         
-                        // UUID formatlama
                         UUID uuid = UUID.fromString(rawId.replaceFirst(
                             "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", 
                             "$1-$2-$3-$4-$5"));
@@ -101,7 +99,7 @@ public class PlayerSearchScreen extends Screen {
                         if (this.client.world != null) {
                             this.client.execute(() -> {
                                 dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
-                                // Modeli (slim/classic) API'den gelen veriye göre zorlayabilirsin gerekirse
+                                // Skin dokularını asenkron olarak çek
                                 this.client.getSkinProvider().fetchSkinTextures(profile);
                             });
                         }
@@ -132,19 +130,24 @@ public class PlayerSearchScreen extends Screen {
                 if (error != null) {
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(error).styled(s -> s.withColor(0xFF5555)), centerX, 100, 0xFF5555);
                 } else {
-                    // TASARIM GÜNCELLEMESİ (Resimdeki düzene göre)
                     foundTiers = APIUtils.getAllTiers(searchedName);
                     
-                    // Başlık (Resimdeki gibi üstte)
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s Profile").styled(s -> s.withBold(true).withColor(0xFFFFFF)), centerX, 20, 0xFFFFFF);
 
-                    // 3D Player - Sol Tarafta (Resimdeki gibi)
+                    // --- 3D PLAYER RENDER DÜZELTMESİ ---
                     if (dummyPlayer != null) {
-                        // Mouse karakteri takip etsin diye mouseX/mouseY gönderiliyor
-                        InventoryScreen.drawEntity(context, centerX - 110, centerY - 50, centerX - 30, centerY + 70, 55, 0.0625F, mouseX, mouseY, dummyPlayer);
+                        // Karakterin skininin yüklenmesi için ticklenmesi şart
+                        dummyPlayer.tick(); 
+                        
+                        // Pozisyonu sol tarafa hizalıyoruz (centerX - 100 civarı)
+                        int x = centerX - 90;
+                        int y = centerY + 50; 
+                        
+                        // drawEntity(context, x, y, size, mouseX, mouseY, entity)
+                        InventoryScreen.drawEntity(context, x, y, 50, (float)x - mouseX, (float)(y - 50) - mouseY, dummyPlayer);
                     }
+                    // ------------------------------------
 
-                    // Rankings - Sağ Tarafta (Resimdeki gibi)
                     int infoX = centerX + 10;
                     int infoY = centerY - 40;
                     
@@ -161,11 +164,11 @@ public class PlayerSearchScreen extends Screen {
                     }
                 }
 
-                // Yeni Arama Butonu
                 if (this.children().stream().noneMatch(c -> c instanceof ButtonWidget && ((ButtonWidget)c).getMessage().getString().equals("Yeni Arama"))) {
                     this.addDrawableChild(ButtonWidget.builder(Text.literal("Yeni Arama").styled(s -> s.withColor(0x3498DB)), btn -> {
                         searchedName = "";
                         isSearching = false;
+                        dummyPlayer = null; // Eski oyuncuyu temizle
                         this.clearChildren();
                         this.init();
                     }).dimensions(centerX - 80, this.height - 55, 160, 20).build());
@@ -196,6 +199,7 @@ public class PlayerSearchScreen extends Screen {
 
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
+    
     @Override
     public boolean charTyped(char chr, int modifiers) {
         if (searchField.charTyped(chr, modifiers)) {
