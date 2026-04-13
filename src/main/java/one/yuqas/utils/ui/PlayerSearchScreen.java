@@ -135,18 +135,24 @@ public class PlayerSearchScreen extends Screen {
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s Profile").styled(s -> s.withBold(true).withColor(0xFFFFFF)), centerX, 20, 0xFFFFFF);
 
                     // --- 3D PLAYER RENDER DÜZELTMESİ ---
-                    if (dummyPlayer != null) {
-                        // Karakterin skininin yüklenmesi için ticklenmesi şart
-                        dummyPlayer.tick(); 
-                        
-                        // Pozisyonu sol tarafa hizalıyoruz (centerX - 100 civarı)
-                        int x = centerX - 90;
-                        int y = centerY + 50; 
-                        
-                        // drawEntity(context, x, y, size, mouseX, mouseY, entity)
-                        InventoryScreen.drawEntity(context, x, y, 50, (float)x - mouseX, (float)(y - 50) - mouseY, dummyPlayer);
-                    }
-                    // ------------------------------------
+  if (dummyPlayer != null) {
+    dummyPlayer.tick(); 
+    
+    int x = centerX - 90;
+    int y = centerY + 50; 
+
+    // GÜNCEL PARAMETRE DİZİLİMİ (1.20+ için)
+    // context, x1, y1, x2, y2, size, mouseX, mouseY, entity
+    InventoryScreen.drawEntity(
+        context, 
+        x - 30, y - 70, x + 30, y + 10, // Karakterin kutu sınırları
+        50,                             // Boyut (Scale)
+        0.0625F,                        // Look delta
+        (float)x - mouseX,              // Mouse X bakış yönü
+        (float)(y - 50) - mouseY,       // Mouse Y bakış yönü
+        dummyPlayer                     // Render edilecek oyuncu
+    );
+}
 
                     int infoX = centerX + 10;
                     int infoY = centerY - 40;
