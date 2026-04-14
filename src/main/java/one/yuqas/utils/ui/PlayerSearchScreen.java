@@ -218,7 +218,12 @@ public class PlayerSearchScreen extends Screen {
                         MinecraftClient client = MinecraftClient.getInstance();
                         
                         try {
+                            // Textures property var mı kontrol et (crack oyuncu kontrolü)
+                            boolean hasSkin = currentProfile.getProperties().containsKey("textures");
+                            System.out.println("[PlayerSearchScreen] Oyuncu textures var mı: " + hasSkin);
+                            
                             // Skin supplier - profile skin texture'sini sağla
+                            // Eğer textures yoksa (crack), Steve skin gösterilir
                             Supplier<SkinTextures> skinSupplier = client.getSkinProvider()
                                 .getSkinTexturesSupplier(currentProfile);
                             
@@ -227,20 +232,23 @@ public class PlayerSearchScreen extends Screen {
                             System.out.println("[PlayerSearchScreen] Supplier'dan SkinTextures: " + textures);
                             if (textures != null) {
                                 System.out.println("[PlayerSearchScreen] Texture URL: " + textures.texture());
+                                System.out.println("[PlayerSearchScreen] Cape URL: " + textures.capeTexture());
                             } else {
                                 System.out.println("[PlayerSearchScreen] WARNING: SkinTextures null!");
                             }
                             
                             System.out.println("[PlayerSearchScreen] Widget oluşturuluyor - Profile: " + currentProfile.getName() + " UUID: " + currentProfile.getId());
                             
+                            // Widget'ı büyüt: 60x144 → 120x200
                             skinWidget = new PlayerSkinWidget(
-                                60,   // Genişlik
-                                144,  // Yükseklik
+                                120,   // Genişlik (büyütüldü)
+                                200,   // Yükseklik (büyütüldü)
                                 client.getLoadedEntityModels(), // 3D Modeller
-                                skinSupplier // Skin dokusu supplier
+                                skinSupplier // Skin dokusu supplier (cape dahil)
                             );
-                            skinWidget.setPosition(centerX - 65, centerY - 72);
-                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget başarıyla oluşturuldu");
+                            // Position güncelle: ortalanmış ve daha geniş alan
+                            skinWidget.setPosition(centerX - 130, centerY - 110);
+                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget başarıyla oluşturuldu (120x200)");
                         } catch (Exception e) {
                             System.out.println("[PlayerSearchScreen] Widget oluşturma hatası: " + e.getClass().getSimpleName() + " - " + e.getMessage());
                             e.printStackTrace();
