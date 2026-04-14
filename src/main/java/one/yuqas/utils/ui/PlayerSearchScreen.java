@@ -116,19 +116,41 @@ public class PlayerSearchScreen extends Screen {
                         UUID uuid = UUID.fromString(formattedUuid);
                         GameProfile profile = new GameProfile(uuid, playerName);
 
-                        // SessionService'ten profile properties'lerini doldur (skin URL'si için)
-                        MinecraftClient client = MinecraftClient.getInstance();
+                        // SessionServer'dan profile properties'lerini doldur (skin URL'si için)
                         try {
-                            GameProfile profileWithProps = client.getSessionService().fillProfileProperties(profile);
-                            System.out.println("[PlayerSearchScreen] Profile properties yüklendi - Properties: " + profileWithProps.getProperties().size());
+                            URL sessionUrl = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + formattedUuid);
+                            HttpURLConnection sessionCon = (HttpURLConnection) sessionUrl.openConnection();
+                            sessionCon.setConnectTimeout(5000);
+                            sessionCon.setReadTimeout(5000);
+                            
+                            if (sessionCon.getResponseCode() == 200) {
+                                try (java.io.InputStreamReader reader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
+                                    JsonObject sessionJson = new Gson().fromJson(reader, JsonObject.class);
+                                    
+                                    // Properties array'den textures'ı ara
+                                    if (sessionJson.has("properties")) {
+                                        com.google.gson.JsonArray propsArray = sessionJson.getAsJsonArray("properties");
+                                        for (int i = 0; i < propsArray.size(); i++) {
+                                            JsonObject prop = propsArray.get(i).getAsJsonObject();
+                                            if ("textures".equals(prop.get("name").getAsString())) {
+                                                String textureValue = prop.get("value").getAsString();
+                                                profile.getProperties().put("textures", textureValue);
+                                                System.out.println("[PlayerSearchScreen] Skin properties yüklendi");
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             
                             // Main thread'de profile'ı set et ve skin fetch et
+                            MinecraftClient client = MinecraftClient.getInstance();
                             client.execute(() -> {
-                                currentProfile = profileWithProps;
+                                currentProfile = profile;
                                 skinWidget = null;  // Widget'ı sıfırla, yenisi oluşturulsun
                                 // Skin yüklenmesini başla
-                                client.getSkinProvider().fetchSkinTextures(profileWithProps);
-                                System.out.println("[PlayerSearchScreen] Skin fetch başladı - Profile: " + profileWithProps.getName() + " UUID: " + profileWithProps.getId());
+                                client.getSkinProvider().fetchSkinTextures(profile);
+                                System.out.println("[PlayerSearchScreen] Skin fetch başladı - Profile: " + profile.getName() + " UUID: " + profile.getId());
                             });
                             
                             // Skin cache olsun diye zaman ver
