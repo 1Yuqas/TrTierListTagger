@@ -12,7 +12,11 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import com.mojang.authlib.GameProfile;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import one.yuqas.utils.APIUtils;
 
 public class PlayerSearchScreen extends Screen {
@@ -82,32 +86,47 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
-        // Profili ve skin'i async olarak fetch et
+        // Profil UUID'sini Minecraft API'sinden çek
         new Thread(() -> {
             try {
-                // Test için Notch profili (UUID biliyoruz)
-                UUID uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
-                GameProfile profile = new GameProfile(uuid, searchedName);
+                // Minecraft Yggdrasil API'sinden oyuncu profili çek
+                URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                con.setConnectTimeout(5000);
 
-                // Skin dokusu fetch et
-                MinecraftClient client = MinecraftClient.getInstance();
-                client.getSkinProvider().fetchSkinTextures(profile);
+                if (con.getResponseCode() == 200) {
+                    try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
+                        com.google.gson.JsonObject json = new com.google.gson.Gson().fromJson(reader, com.google.gson.JsonObject.class);
+                        String uuidStr = json.get("id").getAsString();
+                        String playerName = json.get("name").getAsString();
 
-                currentProfile = profile;
-                System.out.println("[PlayerSearchScreen] Profile fetch tamamlandı: " + profile.getName());
+                        // UUID string'ini format et (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+                        UUID uuid = UUID.fromString(
+                            uuidStr.replaceFirst(
+                                "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})",
+                                "$1-$2-$3-$4-$5"
+                            )
+                        );
 
-                // Ana thread'de widget oluştur
-                client.execute(() -> {
-                    System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuluyor...");
-                });
+                        GameProfile profile = new GameProfile(uuid, playerName);
 
+                        // Skin dokusu fetch et
+                        MinecraftClient client = MinecraftClient.getInstance();
+                        client.getSkinProvider().fetchSkinTextures(profile);
+
+                        currentProfile = profile;
+                        System.out.println("[PlayerSearchScreen] Profil bulundu - Oyuncu: " + playerName + " UUID: " + uuid);
+                    }
+                } else if (con.getResponseCode() == 404) {
+                    System.out.println("[PlayerSearchScreen] Oyuncu bulunamadı: " + searchedName);
+                }
             } catch (Exception e) {
-                System.out.println("[PlayerSearchScreen] Profile fetch hatası: " + e.getMessage());
+                System.out.println("[PlayerSearchScreen] UUID fetch hatası: " + e.getMessage());
                 e.printStackTrace();
             }
         }).start();
 
-        System.out.println("[PlayerSearchScreen] Profile fetch başladı");
+        System.out.println("[PlayerSearchScreen] UUID fetch başladı");
     }
 
     @Override
@@ -153,6 +172,8 @@ public class PlayerSearchScreen extends Screen {
                             Supplier<SkinTextures> skinSupplier = client.getSkinProvider()
                                 .getSkinTexturesSupplier(currentProfile);
                             
+                            System.out.println("[PlayerSearchScreen] Skin supplier oluşturuldu - Profile: " + currentProfile.getName() + " UUID: " + currentProfile.getId());
+                            
                             skinWidget = new PlayerSkinWidget(
                                 60,   // Genişlik
                                 144,  // Yükseklik
@@ -160,7 +181,7 @@ public class PlayerSearchScreen extends Screen {
                                 skinSupplier // Skin dokusu supplier
                             );
                             skinWidget.setPosition(centerX - 65, centerY - 72);
-                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuldu - UUID: " + currentProfile.getId());
+                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuldu - Position: (" + (centerX - 65) + ", " + (centerY - 72) + ")");
                         } catch (Exception e) {
                             System.out.println("[PlayerSearchScreen] Widget oluşturma hatası: " + e.getMessage());
                             e.printStackTrace();
@@ -169,7 +190,14 @@ public class PlayerSearchScreen extends Screen {
 
                     // Widget'ı render et
                     if (skinWidget != null) {
-                        skinWidget.render(context, (int)mouseX, (int)mouseY, delta);
+                        try {
+                            skinWidget.render(context, (int)mouseX, (int)mouseY, delta);
+                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget rendered");
+                        } catch (Exception e) {
+                            System.out.println("[PlayerSearchScreen] Render hatası: " + e.getMessage());
+                        }
+                    } else {
+                        System.out.println("[PlayerSearchScreen] skinWidget null - Profile: " + currentProfile);
                     }
                     int infoX = centerX + 10;
                     int infoY = centerY - 40;
