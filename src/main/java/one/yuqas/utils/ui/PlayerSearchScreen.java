@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import com.mojang.authlib.GameProfile;
+import one.yuqas.utils.APIUtils;
 
 public class PlayerSearchScreen extends Screen {
     private final Screen parent;
@@ -63,7 +64,7 @@ public class PlayerSearchScreen extends Screen {
     }
 
     private void updateVisibility() {
-        boolean showSearch = searchedName == null || searchedName.isEmpty();
+        boolean showSearch = !isSearching && (searchedName == null || searchedName.isEmpty());
         searchField.visible = showSearch;
         searchButton.visible = showSearch;
     }
@@ -80,7 +81,9 @@ public class PlayerSearchScreen extends Screen {
         pitch = 0.0F;
         updateVisibility();
 
-        // Basit tier listesi
+        APIUtils.fetchSync(searchedName);
+
+        // Basit tier listesi (fallback)
         foundTiers = List.of(
             Text.literal("§aHT1 - High Tier 1"),
             Text.literal("§bLT2 - Low Tier 2")
@@ -94,7 +97,6 @@ public class PlayerSearchScreen extends Screen {
             client.getSkinProvider().fetchSkinTextures(profile);
         }
 
-        isSearching = false;
         updateVisibility();
     }
 
@@ -110,7 +112,7 @@ public class PlayerSearchScreen extends Screen {
         }
 
         if (searchedName != null && !searchedName.isEmpty()) {
-            if (foundTiers != null) {
+            if (APIUtils.hasData(searchedName)) {
                 String error = APIUtils.getError(searchedName);
                 isSearching = false;
 
@@ -167,6 +169,8 @@ public class PlayerSearchScreen extends Screen {
                         this.init();
                     }).dimensions(centerX - 80, this.height - 55, 160, 20).build());
                 }
+            } else if (isSearching) {
+                context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Sistemden Sorgulanıyor...").styled(s -> s.withColor(0xAAAAAA)), centerX, centerY, 0xAAAAAA);
             }
         }
     }
