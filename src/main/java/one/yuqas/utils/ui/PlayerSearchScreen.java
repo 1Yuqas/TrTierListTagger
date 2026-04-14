@@ -200,3 +200,4 @@ public class PlayerSearchScreen extends Screen {
         }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
+}
