@@ -12,7 +12,7 @@
 ----
 **Komutlar**
 - `/trtiertagger` - TrTierTagger menüsünü açar
-- ` /trtiertagger <player>` - Oyuncunun Tierlerini görmeniz için menü açar
+- `/trtiertagger <player>` - Oyuncunun Tierlerini görmeniz için menü açar
 
 **Tier Tagger GUI**
 -
