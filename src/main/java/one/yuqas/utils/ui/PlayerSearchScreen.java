@@ -88,11 +88,13 @@ public class PlayerSearchScreen extends Screen {
                 if (con.getResponseCode() == 200) {
                     try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
                         JsonObject json = new Gson().fromJson(reader, JsonObject.class);
+                        if (!json.has("uuid")) {
+                            // UUID bulunamadı, dummyPlayer oluşturma
+                            return;
+                        }
                         String rawId = json.get("uuid").getAsString();
                         
-                        UUID uuid = UUID.fromString(rawId.replaceFirst(
-                            "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", 
-                            "$1-$2-$3-$4-$5"));
+                        UUID uuid = UUID.fromString(rawId);
 
                         GameProfile profile = new GameProfile(uuid, searchedName);
 
@@ -148,8 +150,8 @@ public class PlayerSearchScreen extends Screen {
         x - 30, y - 70, x + 30, y + 10, // Karakterin kutu sınırları
         50,                             // Boyut (Scale)
         0.0625F,                        // Look delta
-        (float)x - mouseX,              // Mouse X bakış yönü
-        (float)(y - 50) - mouseY,       // Mouse Y bakış yönü
+        0.0F,                           // Mouse X bakış yönü (sabit)
+        0.0F,                           // Mouse Y bakış yönü (sabit)
         dummyPlayer                     // Render edilecek oyuncu
     );
 }
