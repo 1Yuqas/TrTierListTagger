@@ -1,6 +1,7 @@
 {
   "providers": [
     {"type":"bitmap","file":"trtierlisttagger:icons/tierlisttr.png","ascent":11.5,"height":16,"chars":["\uE991"]},
+    {"type":"bitmap","file":"trtierlisttagger:icons/mace.png","ascent":8,"height":8,"chars":["\uE991"]},
     {"type":"bitmap","file":"trtierlisttagger:icons/crystal.png","ascent":8,"height":8,"chars":["\uE992"]},
     {"type":"bitmap","file":"trtierlisttagger:icons/sword.png","ascent":8,"height":8,"chars":["\uE993"]},
     {"type":"bitmap","file":"trtierlisttagger:icons/uhc.png","ascent":8,"height":8,"chars":["\uE994"]},

@@ -78,7 +78,6 @@ public class PlayerSearchScreen extends Screen {
         searchedName = searchField.getText().trim();
         if (searchedName.isEmpty()) return;
 
-        System.out.println("[PlayerSearchScreen] startSearch: " + searchedName);
         isSearching = true;
         foundTiers = null;
         skinWidget = null;
@@ -95,15 +94,11 @@ public class PlayerSearchScreen extends Screen {
                 con.setConnectTimeout(5000);
                 con.setReadTimeout(5000);
 
-                System.out.println("[PlayerSearchScreen] API çağrısı: " + con.getResponseCode());
-
                 if (con.getResponseCode() == 200) {
                     try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
                         JsonObject json = new Gson().fromJson(reader, JsonObject.class);
                         String uuidStr = json.get("id").getAsString();
                         String playerName = json.get("name").getAsString();
-
-                        System.out.println("[PlayerSearchScreen] API Response - Oyuncu: " + playerName + " UUID (raw): " + uuidStr);
 
                         // UUID string'ini format et (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
                         String formattedUuid = uuidStr.replaceFirst(
@@ -111,7 +106,6 @@ public class PlayerSearchScreen extends Screen {
                             "$1-$2-$3-$4-$5"
                         );
                         
-                        System.out.println("[PlayerSearchScreen] Formatted UUID: " + formattedUuid);
 
                         UUID uuid = UUID.fromString(formattedUuid);
                         GameProfile profile = new GameProfile(uuid, playerName);
@@ -135,7 +129,6 @@ public class PlayerSearchScreen extends Screen {
                                             if ("textures".equals(prop.get("name").getAsString())) {
                                                 String textureValue = prop.get("value").getAsString();
                                                 profile.getProperties().put("textures", new com.mojang.authlib.properties.Property("textures", textureValue));
-                                                System.out.println("[PlayerSearchScreen] Skin properties yüklendi");
                                                 break;
                                             }
                                         }
@@ -148,9 +141,7 @@ public class PlayerSearchScreen extends Screen {
                             client.execute(() -> {
                                 currentProfile = profile;
                                 skinWidget = null;  // Widget'ı sıfırla, yenisi oluşturulsun
-                                // Skin yüklenmesini başla
                                 client.getSkinProvider().fetchSkinTextures(profile);
-                                System.out.println("[PlayerSearchScreen] Skin fetch başladı - Profile: " + profile.getName() + " UUID: " + profile.getId());
                             });
                             
                             // Skin cache olsun diye zaman ver
@@ -158,7 +149,6 @@ public class PlayerSearchScreen extends Screen {
                                 try {
                                     Thread.sleep(200);  // 200ms bekle skin fetch'in cache edilmesi için
                                     client.execute(() -> {
-                                        System.out.println("[PlayerSearchScreen] Skin yükleme tamamlandı, widget hazırlama başlıyor");
                                         isSearching = false;
                                     });
                                 } catch (InterruptedException e) {
@@ -166,24 +156,20 @@ public class PlayerSearchScreen extends Screen {
                                 }
                             }).start();
                         } catch (Exception e) {
-                            System.out.println("[PlayerSearchScreen] Profile properties yükleme hatası: " + e.getMessage());
                             e.printStackTrace();
                             isSearching = false;
                         }
 
                     }
                 } else if (con.getResponseCode() == 404) {
-                    System.out.println("[PlayerSearchScreen] Oyuncu bulunamadı: " + searchedName);
                     isSearching = false;
                 }
             } catch (Exception e) {
-                System.out.println("[PlayerSearchScreen] UUID fetch hatası: " + e.getMessage());
                 e.printStackTrace();
                 isSearching = false;
             }
         }).start();
 
-        System.out.println("[PlayerSearchScreen] UUID fetch başladı");
     }
 
     @Override
@@ -220,8 +206,7 @@ public class PlayerSearchScreen extends Screen {
                         try {
                             // Textures property var mı kontrol et (crack oyuncu kontrolü)
                             boolean hasSkin = currentProfile.getProperties().containsKey("textures");
-                            System.out.println("[PlayerSearchScreen] Oyuncu textures var mı: " + hasSkin);
-                            
+
                             // Skin supplier - profile skin texture'sini sağla
                             // Eğer textures yoksa (crack), Steve skin gösterilir
                             Supplier<SkinTextures> skinSupplier = client.getSkinProvider()
@@ -229,15 +214,6 @@ public class PlayerSearchScreen extends Screen {
                             
                             // Debug: Supplier'ı kontrol et
                             SkinTextures textures = skinSupplier.get();
-                            System.out.println("[PlayerSearchScreen] Supplier'dan SkinTextures: " + textures);
-                            if (textures != null) {
-                                System.out.println("[PlayerSearchScreen] Texture URL: " + textures.texture());
-                                System.out.println("[PlayerSearchScreen] Cape URL: " + textures.capeTexture());
-                            } else {
-                                System.out.println("[PlayerSearchScreen] WARNING: SkinTextures null!");
-                            }
-                            
-                            System.out.println("[PlayerSearchScreen] Widget oluşturuluyor - Profile: " + currentProfile.getName() + " UUID: " + currentProfile.getId());
                             
                             // Widget'ı eski boyuta geri çek: 60x144
                             skinWidget = new PlayerSkinWidget(
@@ -246,11 +222,8 @@ public class PlayerSearchScreen extends Screen {
                                 client.getLoadedEntityModels(), // 3D Modeller
                                 skinSupplier // Skin dokusu supplier (cape dahil)
                             );
-                            // Position güncelle: ortalanmış
                             skinWidget.setPosition(centerX - 65, centerY - 72);
-                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget başarıyla oluşturuldu (60x144)");
                         } catch (Exception e) {
-                            System.out.println("[PlayerSearchScreen] Widget oluşturma hatası: " + e.getClass().getSimpleName() + " - " + e.getMessage());
                             e.printStackTrace();
                         }
                     }
@@ -260,10 +233,8 @@ public class PlayerSearchScreen extends Screen {
                         try {
                             skinWidget.render(context, (int)mouseX, (int)mouseY, delta);
                         } catch (Exception e) {
-                            System.out.println("[PlayerSearchScreen] Widget render hatası: " + e.getClass().getSimpleName() + " - " + e.getMessage());
                         }
                     } else {
-                        System.out.println("[PlayerSearchScreen] skinWidget hala null - currentProfile: " + currentProfile);
                     }
                     int infoX = centerX + 10;
                     int infoY = centerY - 40;
@@ -288,8 +259,13 @@ public class PlayerSearchScreen extends Screen {
                         skinWidget = null;
                         currentProfile = null;
                         foundTiers = null;
-                        this.clearChildren();
-                        this.init();
+
+                        searchField.setText("");
+                        searchField.setFocused(true);
+
+                        updateVisibility();
+
+                        this.remove(btn);
                     }).dimensions(centerX - 80, this.height - 55, 160, 20).build());
                 }
             } else if (isSearching) {

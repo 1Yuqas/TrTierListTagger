@@ -6,7 +6,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import one.yuqas.utils.APIUtils;
-import one.yuqas.utils.TierConfig;
+import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
 import one.yuqas.utils.enums.TierType;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,7 +21,6 @@ public class TabTagMixin {
     private Text injectTab(Text original) {
         PlayerListEntry self = (PlayerListEntry) (Object) this;
 
-        // 1. ADIM: Sunucunun gönderdiği asıl ismi (Taglar dahil) bul
         Text baseName = original;
         if (baseName == null) {
             if (self.getScoreboardTeam() != null) {
@@ -32,7 +31,7 @@ public class TabTagMixin {
         }
 
         try {
-            if (!TierConfig.getBoolean(Config.TAB_TAG)) return baseName;
+            if (!TierConfigUtil.getBoolean(Config.TAB_TAG)) return baseName;
 
             String playerName = getPlayerName();
             if (playerName == null || playerName.isEmpty()) return baseName;
@@ -46,7 +45,7 @@ public class TabTagMixin {
                 return baseName;
             }
 
-            boolean isRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
+            boolean isRightSide = TierConfigUtil.getBoolean(Config.TAB_SIDE);
             MutableText finalEntry = Text.empty();
             Text separator = Text.literal(" | ").formatted(Formatting.GRAY);
 
