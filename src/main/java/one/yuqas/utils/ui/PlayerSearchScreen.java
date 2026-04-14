@@ -239,16 +239,16 @@ public class PlayerSearchScreen extends Screen {
                             
                             System.out.println("[PlayerSearchScreen] Widget oluşturuluyor - Profile: " + currentProfile.getName() + " UUID: " + currentProfile.getId());
                             
-                            // Widget'ı büyüt: 60x144 → 90x160 (küçültüldü)
+                            // Widget'ı eski boyuta geri çek: 60x144
                             skinWidget = new PlayerSkinWidget(
-                                90,   // Genişlik (100'den 90'a azaltıldı)
-                                160,   // Yükseklik (200'den 160'a azaltıldı)
+                                60,   // Genişlik (orijinal)
+                                144,   // Yükseklik (orijinal)
                                 client.getLoadedEntityModels(), // 3D Modeller
                                 skinSupplier // Skin dokusu supplier (cape dahil)
                             );
                             // Position güncelle: ortalanmış
-                            skinWidget.setPosition(centerX - 100, centerY - 90);
-                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget başarıyla oluşturuldu (90x160)");
+                            skinWidget.setPosition(centerX - 65, centerY - 72);
+                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget başarıyla oluşturuldu (60x144)");
                         } catch (Exception e) {
                             System.out.println("[PlayerSearchScreen] Widget oluşturma hatası: " + e.getClass().getSimpleName() + " - " + e.getMessage());
                             e.printStackTrace();
