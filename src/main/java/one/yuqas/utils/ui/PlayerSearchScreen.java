@@ -115,11 +115,6 @@ public class PlayerSearchScreen extends Screen {
         this.mouseX = mouseX;
         this.mouseY = mouseY;
         
-        // Widget'ı tick et (animasyon için)
-        if (skinWidget != null) {
-            skinWidget.tick();
-        }
-        
         super.render(context, mouseX, mouseY, delta);
         int centerX = this.width / 2;
         int centerY = this.height / 2;
