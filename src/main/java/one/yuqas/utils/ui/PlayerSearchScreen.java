@@ -219,3 +219,4 @@ public class PlayerSearchScreen extends Screen {
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
+}
