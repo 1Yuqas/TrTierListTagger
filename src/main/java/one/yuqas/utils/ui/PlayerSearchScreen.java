@@ -86,7 +86,7 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
-        // Profil UUID'sini Minecraft API'sinden çek
+        // Profil UUID'sini Minecraft API'sinden çek4
         new Thread(() -> {
             try {
                 // Minecraft Yggdrasil API'sinden oyuncu profili çek
