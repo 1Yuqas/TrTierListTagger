@@ -124,8 +124,8 @@ public class PlayerSearchScreen extends Screen {
                             sessionCon.setReadTimeout(5000);
                             
                             if (sessionCon.getResponseCode() == 200) {
-                                try (java.io.InputStreamReader reader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
-                                    JsonObject sessionJson = new Gson().fromJson(reader, JsonObject.class);
+                                try (java.io.InputStreamReader sessionReader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
+                                    JsonObject sessionJson = new Gson().fromJson(sessionReader, JsonObject.class);
                                     
                                     // Properties array'den textures'ı ara
                                     if (sessionJson.has("properties")) {
@@ -134,7 +134,7 @@ public class PlayerSearchScreen extends Screen {
                                             JsonObject prop = propsArray.get(i).getAsJsonObject();
                                             if ("textures".equals(prop.get("name").getAsString())) {
                                                 String textureValue = prop.get("value").getAsString();
-                                                profile.getProperties().put("textures", textureValue);
+                                                profile.getProperties().put("textures", new com.mojang.authlib.properties.Property("textures", textureValue));
                                                 System.out.println("[PlayerSearchScreen] Skin properties yüklendi");
                                                 break;
                                             }
