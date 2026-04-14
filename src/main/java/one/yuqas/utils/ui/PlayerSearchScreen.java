@@ -124,8 +124,20 @@ public class PlayerSearchScreen extends Screen {
                             // Skin yüklenmesini başla
                             client.getSkinProvider().fetchSkinTextures(profile);
                             System.out.println("[PlayerSearchScreen] Skin fetch başladı - Profile: " + profile.getName() + " UUID: " + profile.getId());
-                            isSearching = false;
                         });
+                        
+                        // Skin cache olsun diye zaman ver
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(200);  // 200ms bekle skin fetch'in cache edilmesi için
+                                client.execute(() -> {
+                                    System.out.println("[PlayerSearchScreen] Skin yükleme tamamlandı, widget hazırlama başlıyor");
+                                    isSearching = false;
+                                });
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        }).start();
 
                     }
                 } else if (con.getResponseCode() == 404) {
