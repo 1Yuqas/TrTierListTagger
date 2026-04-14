@@ -78,8 +78,34 @@ public class PlayerSearchScreen extends Screen {
         isSearching = true;
         foundTiers = null;
         skinWidget = null;
+        currentProfile = null;
         updateVisibility();
         APIUtils.fetchSync(searchedName);
+
+        // Profili ve skin'i async olarak fetch et
+        new Thread(() -> {
+            try {
+                // Test için Notch profili (UUID biliyoruz)
+                UUID uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
+                GameProfile profile = new GameProfile(uuid, searchedName);
+
+                // Skin dokusu fetch et
+                MinecraftClient client = MinecraftClient.getInstance();
+                client.getSkinProvider().fetchSkinTextures(profile);
+
+                currentProfile = profile;
+                System.out.println("[PlayerSearchScreen] Profile fetch tamamlandı: " + profile.getName());
+
+                // Ana thread'de widget oluştur
+                client.execute(() -> {
+                    System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuluyor...");
+                });
+
+            } catch (Exception e) {
+                System.out.println("[PlayerSearchScreen] Profile fetch hatası: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
 
         System.out.println("[PlayerSearchScreen] Profile fetch başladı");
     }
@@ -88,6 +114,12 @@ public class PlayerSearchScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         this.mouseX = mouseX;
         this.mouseY = mouseY;
+        
+        // Widget'ı tick et (animasyon için)
+        if (skinWidget != null) {
+            skinWidget.tick();
+        }
+        
         super.render(context, mouseX, mouseY, delta);
         int centerX = this.width / 2;
         int centerY = this.height / 2;
@@ -114,23 +146,26 @@ public class PlayerSearchScreen extends Screen {
                         // Profili oluştur
                         UUID uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
                         currentProfile = new GameProfile(uuid, searchedName);
-                        System.out.println("[PlayerSearchScreen] GameProfile oluşturuldu");
+                        System.out.println("[PlayerSearchScreen] GameProfile oluşturuldu: " + currentProfile);
                     }
 
                     if (skinWidget == null && currentProfile != null) {
                         // PlayerSkinWidget'ı oluştur
                         MinecraftClient client = MinecraftClient.getInstance();
-                        Supplier<SkinTextures> skinSupplier = client.getSkinProvider().getSkinTexturesSupplier(currentProfile);
                         
                         try {
+                            // Skin supplier - profile skin texture'sini sağla
+                            Supplier<SkinTextures> skinSupplier = client.getSkinProvider()
+                                .getSkinTexturesSupplier(currentProfile);
+                            
                             skinWidget = new PlayerSkinWidget(
-                                60,  // Genişlik
-                                144, // Yükseklik
+                                60,   // Genişlik
+                                144,  // Yükseklik
                                 client.getLoadedEntityModels(), // 3D Modeller
                                 skinSupplier // Skin dokusu supplier
                             );
                             skinWidget.setPosition(centerX - 65, centerY - 72);
-                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuldu");
+                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuldu - UUID: " + currentProfile.getId());
                         } catch (Exception e) {
                             System.out.println("[PlayerSearchScreen] Widget oluşturma hatası: " + e.getMessage());
                             e.printStackTrace();
@@ -139,8 +174,7 @@ public class PlayerSearchScreen extends Screen {
 
                     // Widget'ı render et
                     if (skinWidget != null) {
-                        System.out.println("[PlayerSearchScreen] Rendering PlayerSkinWidget");
-                        skinWidget.render(context, mouseX, mouseY, delta);
+                        skinWidget.render(context, (int)mouseX, (int)mouseY, delta);
                     }
                     int infoX = centerX + 10;
                     int infoY = centerY - 40;
@@ -199,8 +233,7 @@ public class PlayerSearchScreen extends Screen {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (skinWidget != null && skinWidget.isMouseOver(mouseX, mouseY)) {
-            // PlayerSkinWidget mesh'i otomatik olarak mouse position'ı kullanarak döndürüyor
-            // Sadece mouse pozisyonlarını güncelle - widget bunu handle edecek
+            return skinWidget.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
         }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
@@ -208,7 +241,7 @@ public class PlayerSearchScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (skinWidget != null && skinWidget.isMouseOver(mouseX, mouseY)) {
-            // Mouse scroll'u skin widget'a pass et (zoom vs için)
+            return skinWidget.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
