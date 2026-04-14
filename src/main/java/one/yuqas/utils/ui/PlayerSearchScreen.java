@@ -73,11 +73,20 @@ public class PlayerSearchScreen extends Screen {
         searchedName = searchField.getText().trim();
         if (searchedName.isEmpty()) return;
 
+        System.out.println("[PlayerSearchScreen] startSearch: " + searchedName);
         isSearching = true;
         foundTiers = null;
         dummyPlayer = null;
         updateVisibility();
         APIUtils.fetchSync(searchedName);
+
+        // Test için sabit dummyPlayer oluştur
+        if (this.client.world != null) {
+            GameProfile profile = new GameProfile(UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5"), "Notch");
+            dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
+            this.client.getSkinProvider().fetchSkinTextures(profile);
+            System.out.println("[PlayerSearchScreen] created test dummyPlayer for Notch");
+        }
 
         new Thread(() -> {
             try {
@@ -89,10 +98,12 @@ public class PlayerSearchScreen extends Screen {
                     try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
                         JsonObject json = new Gson().fromJson(reader, JsonObject.class);
                         if (!json.has("uuid")) {
+                            System.out.println("[PlayerSearchScreen] API response missing uuid for " + searchedName);
                             // UUID bulunamadı, dummyPlayer oluşturma
                             return;
                         }
                         String rawId = json.get("uuid").getAsString();
+                        System.out.println("[PlayerSearchScreen] received uuid=" + rawId + " for " + searchedName);
                         
                         UUID uuid = UUID.fromString(rawId);
 
@@ -101,6 +112,7 @@ public class PlayerSearchScreen extends Screen {
                         if (this.client.world != null) {
                             this.client.execute(() -> {
                                 dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
+                                System.out.println("[PlayerSearchScreen] created dummyPlayer for " + searchedName + " (" + uuid + ")");
                                 // Skin dokularını asenkron olarak çek
                                 this.client.getSkinProvider().fetchSkinTextures(profile);
                             });
@@ -139,6 +151,7 @@ public class PlayerSearchScreen extends Screen {
                     // --- 3D PLAYER RENDER DÜZELTMESİ ---
   if (dummyPlayer != null) {
     dummyPlayer.tick(); 
+    System.out.println("[PlayerSearchScreen] rendering dummyPlayer for " + searchedName);
     
     int x = centerX - 90;
     int y = centerY + 50; 
@@ -155,8 +168,6 @@ public class PlayerSearchScreen extends Screen {
         dummyPlayer                     // Render edilecek oyuncu
     );
 }
-
-                    int infoX = centerX + 10;
                     int infoY = centerY - 40;
                     
                     context.drawTextWithShadow(this.textRenderer, Text.literal("RANKINGS").styled(s -> s.withBold(true).withColor(0xFFAA00)), infoX, infoY, 0xFFAA00);
