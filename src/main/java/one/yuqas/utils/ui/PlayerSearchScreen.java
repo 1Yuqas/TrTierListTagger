@@ -116,28 +116,38 @@ public class PlayerSearchScreen extends Screen {
                         UUID uuid = UUID.fromString(formattedUuid);
                         GameProfile profile = new GameProfile(uuid, playerName);
 
-                        // Main thread'de profile'ı set et ve skin fetch et
+                        // SessionService'ten profile properties'lerini doldur (skin URL'si için)
                         MinecraftClient client = MinecraftClient.getInstance();
-                        client.execute(() -> {
-                            currentProfile = profile;
-                            skinWidget = null;  // Widget'ı sıfırla, yenisi oluşturulsun
-                            // Skin yüklenmesini başla
-                            client.getSkinProvider().fetchSkinTextures(profile);
-                            System.out.println("[PlayerSearchScreen] Skin fetch başladı - Profile: " + profile.getName() + " UUID: " + profile.getId());
-                        });
-                        
-                        // Skin cache olsun diye zaman ver
-                        new Thread(() -> {
-                            try {
-                                Thread.sleep(200);  // 200ms bekle skin fetch'in cache edilmesi için
-                                client.execute(() -> {
-                                    System.out.println("[PlayerSearchScreen] Skin yükleme tamamlandı, widget hazırlama başlıyor");
-                                    isSearching = false;
-                                });
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
-                            }
-                        }).start();
+                        try {
+                            GameProfile profileWithProps = client.getSessionService().fillProfileProperties(profile);
+                            System.out.println("[PlayerSearchScreen] Profile properties yüklendi - Properties: " + profileWithProps.getProperties().size());
+                            
+                            // Main thread'de profile'ı set et ve skin fetch et
+                            client.execute(() -> {
+                                currentProfile = profileWithProps;
+                                skinWidget = null;  // Widget'ı sıfırla, yenisi oluşturulsun
+                                // Skin yüklenmesini başla
+                                client.getSkinProvider().fetchSkinTextures(profileWithProps);
+                                System.out.println("[PlayerSearchScreen] Skin fetch başladı - Profile: " + profileWithProps.getName() + " UUID: " + profileWithProps.getId());
+                            });
+                            
+                            // Skin cache olsun diye zaman ver
+                            new Thread(() -> {
+                                try {
+                                    Thread.sleep(200);  // 200ms bekle skin fetch'in cache edilmesi için
+                                    client.execute(() -> {
+                                        System.out.println("[PlayerSearchScreen] Skin yükleme tamamlandı, widget hazırlama başlıyor");
+                                        isSearching = false;
+                                    });
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            }).start();
+                        } catch (Exception e) {
+                            System.out.println("[PlayerSearchScreen] Profile properties yükleme hatası: " + e.getMessage());
+                            e.printStackTrace();
+                            isSearching = false;
+                        }
 
                     }
                 } else if (con.getResponseCode() == 404) {
