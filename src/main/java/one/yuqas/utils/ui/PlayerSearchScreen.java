@@ -23,6 +23,7 @@ public class PlayerSearchScreen extends Screen {
     private List<Text> foundTiers = null;
     private boolean isSearching = false;
     private PlayerSkinWidget skinWidget = null;
+    private GameProfile currentProfile = null;
     private float mouseX = 0.0F;
     private float mouseY = 0.0F;
     private final String presetName;
@@ -80,50 +81,13 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
-        // Asenkron olarak profil ve skin fetch et
-        new Thread(() -> {
-            try {
-                // Profile UUID'sini çek (test için hardcoded)
-                UUID uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
-                GameProfile profile = new GameProfile(uuid, searchedName);
-
-                // Skin supplier oluştur
-                MinecraftClient client = MinecraftClient.getInstance();
-                Supplier<SkinTextures> skinSupplier = client.getSkinProvider().getSkinTexturesSupplier(profile);
-
-                // Ana thread'de PlayerSkinWidget oluştur
-                client.execute(() -> {
-                    PlayerSkinWidget widget = new PlayerSkinWidget(
-                        60,  // Genişlik
-                        144, // Yükseklik
-                        MinecraftClient.getInstance().getLoadedEntityModels(), // 3D Modeller
-                        skinSupplier // Skin dokusu supplier
-                    );
-                    widget.setPosition(this.width / 2 - 65, (this.height - 144) / 2);
-                    skinWidget = widget;
-                    System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuldu");
-                });
-
-                // Tier verilerini çek
-                Thread.sleep(500); // Biraz bekle
-                if (APIUtils.hasData(searchedName)) {
-                    List<Text> tiers = APIUtils.getAllTiers(searchedName);
-                    if (tiers != null && !tiers.isEmpty()) {
-                        foundTiers = tiers;
-                    }
-                }
-
-                isSearching = false;
-                System.out.println("[PlayerSearchScreen] Arama tamamlandı: " + searchedName);
-            } catch (Exception e) {
-                e.printStackTrace();
-                isSearching = false;
-            }
-        }).start();
+        System.out.println("[PlayerSearchScreen] Profile fetch başladı");
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        this.mouseX = mouseX;
+        this.mouseY = mouseY;
         super.render(context, mouseX, mouseY, delta);
         int centerX = this.width / 2;
         int centerY = this.height / 2;
@@ -145,9 +109,37 @@ public class PlayerSearchScreen extends Screen {
                     
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s Profile").styled(s -> s.withBold(true).withColor(0xFFFFFF)), centerX, 20, 0xFFFFFF);
 
-                    // --- PLAYERSINWIDGET RENDER ---
+                    // --- PROFILE VE WIDGET OLUŞTUR ---
+                    if (currentProfile == null) {
+                        // Profili oluştur
+                        UUID uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
+                        currentProfile = new GameProfile(uuid, searchedName);
+                        System.out.println("[PlayerSearchScreen] GameProfile oluşturuldu");
+                    }
+
+                    if (skinWidget == null && currentProfile != null) {
+                        // PlayerSkinWidget'ı oluştur
+                        MinecraftClient client = MinecraftClient.getInstance();
+                        Supplier<SkinTextures> skinSupplier = client.getSkinProvider().getSkinTexturesSupplier(currentProfile);
+                        
+                        try {
+                            skinWidget = new PlayerSkinWidget(
+                                60,  // Genişlik
+                                144, // Yükseklik
+                                client.getLoadedEntityModels(), // 3D Modeller
+                                skinSupplier // Skin dokusu supplier
+                            );
+                            skinWidget.setPosition(centerX - 65, centerY - 72);
+                            System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuldu");
+                        } catch (Exception e) {
+                            System.out.println("[PlayerSearchScreen] Widget oluşturma hatası: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+
+                    // Widget'ı render et
                     if (skinWidget != null) {
-                        System.out.println("[PlayerSearchScreen] rendering PlayerSkinWidget for " + searchedName);
+                        System.out.println("[PlayerSearchScreen] Rendering PlayerSkinWidget");
                         skinWidget.render(context, mouseX, mouseY, delta);
                     }
                     int infoX = centerX + 10;
@@ -170,7 +162,8 @@ public class PlayerSearchScreen extends Screen {
                     this.addDrawableChild(ButtonWidget.builder(Text.literal("Yeni Arama").styled(s -> s.withColor(0x3498DB)), btn -> {
                         searchedName = "";
                         isSearching = false;
-                        skinWidget = null; // Eski skin widget'ı temizle
+                        skinWidget = null;
+                        currentProfile = null;
                         foundTiers = null;
                         this.clearChildren();
                         this.init();
