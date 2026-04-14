@@ -1,6 +1,6 @@
 package one.yuqas.utils.ui;
 
-import com.mojang.authlib.GameProfile;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
@@ -8,14 +8,11 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.text.Text;
-import one.yuqas.utils.APIUtils;
 import org.lwjgl.glfw.GLFW;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.List;
 import java.util.UUID;
-import com.google.gson.JsonObject;
-import com.google.gson.Gson;
+import java.util.function.Supplier;
+import com.mojang.authlib.GameProfile;
 
 public class PlayerSearchScreen extends Screen {
     private final Screen parent;
@@ -25,6 +22,8 @@ public class PlayerSearchScreen extends Screen {
     private List<Text> foundTiers = null;
     private boolean isSearching = false;
     private OtherClientPlayerEntity dummyPlayer = null;
+    private float yaw = 0.0F;
+    private float pitch = 0.0F;
     private final String presetName;
 
     public PlayerSearchScreen(Screen parent) {
@@ -64,7 +63,7 @@ public class PlayerSearchScreen extends Screen {
     }
 
     private void updateVisibility() {
-        boolean showSearch = !isSearching && (searchedName == null || searchedName.isEmpty());
+        boolean showSearch = searchedName == null || searchedName.isEmpty();
         searchField.visible = showSearch;
         searchButton.visible = showSearch;
     }
@@ -77,52 +76,26 @@ public class PlayerSearchScreen extends Screen {
         isSearching = true;
         foundTiers = null;
         dummyPlayer = null;
+        yaw = 0.0F;
+        pitch = 0.0F;
         updateVisibility();
-        APIUtils.fetchSync(searchedName);
 
-        // Test için sabit dummyPlayer oluştur
-        if (this.client.world != null) {
-            GameProfile profile = new GameProfile(UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5"), "Notch");
-            dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
-            this.client.getSkinProvider().fetchSkinTextures(profile);
-            System.out.println("[PlayerSearchScreen] created test dummyPlayer for Notch");
+        // Basit tier listesi
+        foundTiers = List.of(
+            Text.literal("§aHT1 - High Tier 1"),
+            Text.literal("§bLT2 - Low Tier 2")
+        );
+
+        // Skin widget oluştur
+        MinecraftClient client = MinecraftClient.getInstance();
+        GameProfile profile = new GameProfile(UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5"), searchedName);
+        if (client.world != null) {
+            dummyPlayer = new OtherClientPlayerEntity(client.world, profile);
+            client.getSkinProvider().fetchSkinTextures(profile);
         }
 
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://api.trtierlist.com/api3/profil/" + searchedName);
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setConnectTimeout(5000);
-
-                if (con.getResponseCode() == 200) {
-                    try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
-                        JsonObject json = new Gson().fromJson(reader, JsonObject.class);
-                        if (!json.has("uuid")) {
-                            System.out.println("[PlayerSearchScreen] API response missing uuid for " + searchedName);
-                            // UUID bulunamadı, dummyPlayer oluşturma
-                            return;
-                        }
-                        String rawId = json.get("uuid").getAsString();
-                        System.out.println("[PlayerSearchScreen] received uuid=" + rawId + " for " + searchedName);
-                        
-                        UUID uuid = UUID.fromString(rawId);
-
-                        GameProfile profile = new GameProfile(uuid, searchedName);
-
-                        if (this.client.world != null) {
-                            this.client.execute(() -> {
-                                dummyPlayer = new OtherClientPlayerEntity(this.client.world, profile);
-                                System.out.println("[PlayerSearchScreen] created dummyPlayer for " + searchedName + " (" + uuid + ")");
-                                // Skin dokularını asenkron olarak çek
-                                this.client.getSkinProvider().fetchSkinTextures(profile);
-                            });
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+        isSearching = false;
+        updateVisibility();
     }
 
     @Override
@@ -137,7 +110,7 @@ public class PlayerSearchScreen extends Screen {
         }
 
         if (searchedName != null && !searchedName.isEmpty()) {
-            if (APIUtils.hasData(searchedName)) {
+            if (foundTiers != null) {
                 String error = APIUtils.getError(searchedName);
                 isSearching = false;
 
@@ -156,15 +129,14 @@ public class PlayerSearchScreen extends Screen {
     int x = centerX - 90;
     int y = centerY + 50; 
 
-    // GÜNCEL PARAMETRE DİZİLİMİ (1.20+ için)
-    // context, x1, y1, x2, y2, size, mouseX, mouseY, entity
+    // Mouse ile döndürme için yaw ve pitch kullan
     InventoryScreen.drawEntity(
         context, 
         x - 30, y - 70, x + 30, y + 10, // Karakterin kutu sınırları
         50,                             // Boyut (Scale)
         0.0625F,                        // Look delta
-        0.0F,                           // Mouse X bakış yönü (sabit)
-        0.0F,                           // Mouse Y bakış yönü (sabit)
+        yaw,                            // Yaw (döndürme)
+        pitch,                          // Pitch (döndürme)
         dummyPlayer                     // Render edilecek oyuncu
     );
 }
@@ -189,12 +161,12 @@ public class PlayerSearchScreen extends Screen {
                         searchedName = "";
                         isSearching = false;
                         dummyPlayer = null; // Eski oyuncuyu temizle
+                        yaw = 0.0F;
+                        pitch = 0.0F;
                         this.clearChildren();
                         this.init();
                     }).dimensions(centerX - 80, this.height - 55, 160, 20).build());
                 }
-            } else if (isSearching) {
-                context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Sistemden Sorgulanıyor...").styled(s -> s.withColor(0xAAAAAA)), centerX, centerY, 0xAAAAAA);
             }
         }
     }
@@ -221,10 +193,10 @@ public class PlayerSearchScreen extends Screen {
     }
     
     @Override
-    public boolean charTyped(char chr, int modifiers) {
-        if (searchField.charTyped(chr, modifiers)) {
-            return true;
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (dummyPlayer != null) {
+            yaw += (float) deltaX * 0.5F;
+            pitch = Math.max(-90.0F, Math.min(90.0F, pitch + (float) deltaY * 0.5F));
         }
-        return super.charTyped(chr, modifiers);
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
-}
