@@ -86,7 +86,7 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
-        // Profil UUID'sini Minecraft API'sinden çek4
+        // Profil UUID'sini Minecraft API'sinden çek
         new Thread(() -> {
             try {
                 // Minecraft Yggdrasil API'sinden oyuncu profili çek
@@ -120,6 +120,7 @@ public class PlayerSearchScreen extends Screen {
                         MinecraftClient client = MinecraftClient.getInstance();
                         client.execute(() -> {
                             currentProfile = profile;
+                            skinWidget = null;  // Widget'ı sıfırla, yenisi oluşturulsun
                             // Skin yüklenmesini başla
                             client.getSkinProvider().fetchSkinTextures(profile);
                             System.out.println("[PlayerSearchScreen] Skin fetch başladı - Profile: " + profile.getName() + " UUID: " + profile.getId());
@@ -167,14 +168,7 @@ public class PlayerSearchScreen extends Screen {
                     
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s Profile").styled(s -> s.withBold(true).withColor(0xFFFFFF)), centerX, 20, 0xFFFFFF);
 
-                    // --- PROFILE VE WIDGET OLUŞTUR ---
-                    if (currentProfile == null) {
-                        // Profili oluştur
-                        UUID uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
-                        currentProfile = new GameProfile(uuid, searchedName);
-                        System.out.println("[PlayerSearchScreen] GameProfile oluşturuldu: " + currentProfile);
-                    }
-
+                    // --- WIDGET OLUŞTUR (Profile API'den gelecek) ---
                     if (skinWidget == null && currentProfile != null) {
                         // PlayerSkinWidget'ı oluştur
                         MinecraftClient client = MinecraftClient.getInstance();
