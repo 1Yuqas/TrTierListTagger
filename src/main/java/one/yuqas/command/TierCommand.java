@@ -40,7 +40,6 @@ public class TierCommand {
                                     );
                                     return 1;
                                 }))
-
         );
     }
 }

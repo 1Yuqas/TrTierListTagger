@@ -5,7 +5,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
-import one.yuqas.utils.TierConfig;
+import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
 import org.lwjgl.glfw.GLFW;
 
@@ -26,7 +26,7 @@ public class TierConfigScreen extends Screen {
     protected void init() {
         int centerX = this.width / 2;
 
-        isEnabled = TierConfig.getBoolean(Config.TAG);
+        isEnabled = TierConfigUtil.getBoolean(Config.TAG);
         this.addDrawableChild(ButtonWidget.builder(
                 getStatusText("Etiket Görünümü: ", isEnabled),
                 btn -> {
@@ -35,7 +35,7 @@ public class TierConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 100, 55, 200, 20).build());
 
-        isRightSide = TierConfig.getBoolean(Config.SIDE);
+        isRightSide = TierConfigUtil.getBoolean(Config.SIDE);
         this.addDrawableChild(ButtonWidget.builder(
                 getSideText(isRightSide),
                 btn -> {
@@ -44,7 +44,7 @@ public class TierConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 100, 95, 200, 20).build());
 
-        placeholder = TierConfig.getBoolean(Config.SHOW_PLACEHOLDER);
+        placeholder = TierConfigUtil.getBoolean(Config.SHOW_PLACEHOLDER);
         this.addDrawableChild(ButtonWidget.builder(
                 getStatusText("Bekleme Göstergesi: ", placeholder),
                 btn -> {
@@ -53,7 +53,7 @@ public class TierConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 100, 135, 200, 20).build());
 
-        isTabEnabled = TierConfig.getBoolean(Config.TAB_TAG);
+        isTabEnabled = TierConfigUtil.getBoolean(Config.TAB_TAG);
         this.addDrawableChild(ButtonWidget.builder(
                 getStatusText("Tab Menüsünde Etiket: ", isTabEnabled),
                 btn -> {
@@ -62,7 +62,7 @@ public class TierConfigScreen extends Screen {
                 }
         ).dimensions(centerX - 100, 175, 200, 20).build());
 
-        isTabRightSide = TierConfig.getBoolean(Config.TAB_SIDE);
+        isTabRightSide = TierConfigUtil.getBoolean(Config.TAB_SIDE);
         this.addDrawableChild(ButtonWidget.builder(
                 getTabSideText(isTabRightSide),
                 btn -> {
@@ -101,12 +101,12 @@ public class TierConfigScreen extends Screen {
     }
 
     private void save() {
-        TierConfig.set(Config.TAG, isEnabled);
-        TierConfig.set(Config.SIDE, isRightSide);
-        TierConfig.set(Config.SHOW_PLACEHOLDER, placeholder);
-        TierConfig.set(Config.TAB_TAG, isTabEnabled);
-        TierConfig.set(Config.TAB_SIDE, isTabRightSide);
-        TierConfig.save();
+        TierConfigUtil.set(Config.TAG, isEnabled);
+        TierConfigUtil.set(Config.SIDE, isRightSide);
+        TierConfigUtil.set(Config.SHOW_PLACEHOLDER, placeholder);
+        TierConfigUtil.set(Config.TAB_TAG, isTabEnabled);
+        TierConfigUtil.set(Config.TAB_SIDE, isTabRightSide);
+        TierConfigUtil.save();
     }
 
     @Override
@@ -117,12 +117,13 @@ public class TierConfigScreen extends Screen {
 
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 15, 0xFFCC00);
 
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 45, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 85, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 125, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_TAG.getDescription()), centerX, 165, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_SIDE.getDescription()), centerX, 205, 0xCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 45, 0xFFCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 85, 0xFFCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 125, 0xFFCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_TAG.getDescription()), centerX, 165, 0xFFCCCCCC);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_SIDE.getDescription()), centerX, 205, 0xFFCCCCCC);
     }
+
     @Override
     public boolean keyPressed(KeyInput input) {
         if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
