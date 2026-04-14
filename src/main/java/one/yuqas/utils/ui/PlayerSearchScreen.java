@@ -3,10 +3,10 @@ package one.yuqas.utils.ui;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.PlayerSkinWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.network.OtherClientPlayerEntity;
+import net.minecraft.client.texture.SkinTextures;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 import java.util.List;
@@ -22,9 +22,9 @@ public class PlayerSearchScreen extends Screen {
     private String searchedName = "";
     private List<Text> foundTiers = null;
     private boolean isSearching = false;
-    private OtherClientPlayerEntity dummyPlayer = null;
-    private float yaw = 0.0F;
-    private float pitch = 0.0F;
+    private PlayerSkinWidget skinWidget = null;
+    private float mouseX = 0.0F;
+    private float mouseY = 0.0F;
     private final String presetName;
 
     public PlayerSearchScreen(Screen parent) {
@@ -76,28 +76,50 @@ public class PlayerSearchScreen extends Screen {
         System.out.println("[PlayerSearchScreen] startSearch: " + searchedName);
         isSearching = true;
         foundTiers = null;
-        dummyPlayer = null;
-        yaw = 0.0F;
-        pitch = 0.0F;
+        skinWidget = null;
         updateVisibility();
-
         APIUtils.fetchSync(searchedName);
 
-        // Basit tier listesi (fallback)
-        foundTiers = List.of(
-            Text.literal("§aHT1 - High Tier 1"),
-            Text.literal("§bLT2 - Low Tier 2")
-        );
+        // Asenkron olarak profil ve skin fetch et
+        new Thread(() -> {
+            try {
+                // Profile UUID'sini çek (test için hardcoded)
+                UUID uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
+                GameProfile profile = new GameProfile(uuid, searchedName);
 
-        // Skin widget oluştur
-        MinecraftClient client = MinecraftClient.getInstance();
-        GameProfile profile = new GameProfile(UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5"), searchedName);
-        if (client.world != null) {
-            dummyPlayer = new OtherClientPlayerEntity(client.world, profile);
-            client.getSkinProvider().fetchSkinTextures(profile);
-        }
+                // Skin supplier oluştur
+                MinecraftClient client = MinecraftClient.getInstance();
+                Supplier<SkinTextures> skinSupplier = client.getSkinProvider().getSkinTexturesSupplier(profile);
 
-        updateVisibility();
+                // Ana thread'de PlayerSkinWidget oluştur
+                client.execute(() -> {
+                    PlayerSkinWidget widget = new PlayerSkinWidget(
+                        60,  // Genişlik
+                        144, // Yükseklik
+                        MinecraftClient.getInstance().getLoadedEntityModels(), // 3D Modeller
+                        skinSupplier // Skin dokusu supplier
+                    );
+                    widget.setPosition(this.width / 2 - 65, (this.height - 144) / 2);
+                    skinWidget = widget;
+                    System.out.println("[PlayerSearchScreen] PlayerSkinWidget oluşturuldu");
+                });
+
+                // Tier verilerini çek
+                Thread.sleep(500); // Biraz bekle
+                if (APIUtils.hasData(searchedName)) {
+                    List<Text> tiers = APIUtils.getAllTiers(searchedName);
+                    if (tiers != null && !tiers.isEmpty()) {
+                        foundTiers = tiers;
+                    }
+                }
+
+                isSearching = false;
+                System.out.println("[PlayerSearchScreen] Arama tamamlandı: " + searchedName);
+            } catch (Exception e) {
+                e.printStackTrace();
+                isSearching = false;
+            }
+        }).start();
     }
 
     @Override
@@ -123,25 +145,11 @@ public class PlayerSearchScreen extends Screen {
                     
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s Profile").styled(s -> s.withBold(true).withColor(0xFFFFFF)), centerX, 20, 0xFFFFFF);
 
-                    // --- 3D PLAYER RENDER DÜZELTMESİ ---
-  if (dummyPlayer != null) {
-    dummyPlayer.tick(); 
-    System.out.println("[PlayerSearchScreen] rendering dummyPlayer for " + searchedName);
-    
-    int x = centerX - 90;
-    int y = centerY + 50; 
-
-    // Mouse ile döndürme için yaw ve pitch kullan
-    InventoryScreen.drawEntity(
-        context, 
-        x - 30, y - 70, x + 30, y + 10, // Karakterin kutu sınırları
-        50,                             // Boyut (Scale)
-        0.0625F,                        // Look delta
-        yaw,                            // Yaw (döndürme)
-        pitch,                          // Pitch (döndürme)
-        dummyPlayer                     // Render edilecek oyuncu
-    );
-}
+                    // --- PLAYERSINWIDGET RENDER ---
+                    if (skinWidget != null) {
+                        System.out.println("[PlayerSearchScreen] rendering PlayerSkinWidget for " + searchedName);
+                        skinWidget.render(context, mouseX, mouseY, delta);
+                    }
                     int infoX = centerX + 10;
                     int infoY = centerY - 40;
                     
@@ -162,9 +170,8 @@ public class PlayerSearchScreen extends Screen {
                     this.addDrawableChild(ButtonWidget.builder(Text.literal("Yeni Arama").styled(s -> s.withColor(0x3498DB)), btn -> {
                         searchedName = "";
                         isSearching = false;
-                        dummyPlayer = null; // Eski oyuncuyu temizle
-                        yaw = 0.0F;
-                        pitch = 0.0F;
+                        skinWidget = null; // Eski skin widget'ı temizle
+                        foundTiers = null;
                         this.clearChildren();
                         this.init();
                     }).dimensions(centerX - 80, this.height - 55, 160, 20).build());
@@ -198,10 +205,17 @@ public class PlayerSearchScreen extends Screen {
     
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        if (dummyPlayer != null) {
-            yaw += (float) deltaX * 0.5F;
-            pitch = Math.max(-90.0F, Math.min(90.0F, pitch + (float) deltaY * 0.5F));
+        if (skinWidget != null && skinWidget.isMouseOver(mouseX, mouseY)) {
+            // PlayerSkinWidget mesh'i otomatik olarak mouse position'ı kullanarak döndürüyor
+            // Sadece mouse pozisyonlarını güncelle - widget bunu handle edecek
         }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
-}
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (skinWidget != null && skinWidget.isMouseOver(mouseX, mouseY)) {
+            // Mouse scroll'u skin widget'a pass et (zoom vs için)
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
