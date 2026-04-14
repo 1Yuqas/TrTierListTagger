@@ -190,6 +190,15 @@ public class PlayerSearchScreen extends Screen {
                             Supplier<SkinTextures> skinSupplier = client.getSkinProvider()
                                 .getSkinTexturesSupplier(currentProfile);
                             
+                            // Debug: Supplier'ı kontrol et
+                            SkinTextures textures = skinSupplier.get();
+                            System.out.println("[PlayerSearchScreen] Supplier'dan SkinTextures: " + textures);
+                            if (textures != null) {
+                                System.out.println("[PlayerSearchScreen] Texture URL: " + textures.texture());
+                            } else {
+                                System.out.println("[PlayerSearchScreen] WARNING: SkinTextures null!");
+                            }
+                            
                             System.out.println("[PlayerSearchScreen] Widget oluşturuluyor - Profile: " + currentProfile.getName() + " UUID: " + currentProfile.getId());
                             
                             skinWidget = new PlayerSkinWidget(
