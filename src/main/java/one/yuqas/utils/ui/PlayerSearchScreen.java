@@ -169,6 +169,16 @@ public class PlayerSearchScreen extends Screen {
     );
 }
                     int infoX = centerX + 10;
+                    int infoY = centerY - 40;
+                    
+                    context.drawTextWithShadow(this.textRenderer, Text.literal("RANKINGS").styled(s -> s.withBold(true).withColor(0xFFAA00)), infoX, infoY, 0xFFAA00);
+                    infoY += 15;
+
+                    if (foundTiers.isEmpty()) {
+                        context.drawTextWithShadow(this.textRenderer, Text.literal("Tier bulunmuyor").styled(s -> s.withColor(0xAAAAAA)), infoX, infoY, 0xAAAAAA);
+                    } else {
+                        for (Text tier : foundTiers) {
+                            context.drawTextWithShadow(this.textRenderer, tier, infoX, infoY, 0xFFFFFF);
                             infoY += 12;
                         }
                     }
