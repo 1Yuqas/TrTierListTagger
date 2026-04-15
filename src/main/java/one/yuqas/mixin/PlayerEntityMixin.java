@@ -5,7 +5,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
-import one.yuqas.utils.TierConfig;
+import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
 import one.yuqas.utils.enums.TierType;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,14 +16,14 @@ public abstract class PlayerEntityMixin {
 
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Text injectTier(Text original) {
-        if (!TierConfig.getBoolean(Config.TAG)) return original;
+        if (!TierConfigUtil.getBoolean(Config.TAG)) return original;
         PlayerEntity self = (PlayerEntity) (Object) this;
         Text tierText = APIUtils.getFormattedTier(TierType.BEST, self.getName().getString());
 
         if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
             return original;
         }
-        boolean isRightSide = TierConfig.getBoolean(Config.SIDE);
+        boolean isRightSide = TierConfigUtil.getBoolean(Config.SIDE);
         MutableText result = Text.empty();
         if (isRightSide) {
             return result.append(original)
