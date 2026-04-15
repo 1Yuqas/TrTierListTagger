@@ -1,31 +1,40 @@
 package one.yuqas.utils.ui;
 
-import com.mojang.authlib.GameProfile;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.resources.SkinManager;
 import net.minecraft.network.chat.Component;
-import one.yuqas.utils.APIUtils;
+import net.minecraft.world.entity.player.PlayerSkin;
 import org.lwjgl.glfw.GLFW;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.awt.*;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import com.mojang.authlib.GameProfile;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import one.yuqas.utils.APIUtils;
 
 public class PlayerSearchScreen extends Screen {
     private final Screen parent;
     private EditBox searchField;
+    private Button searchButton;
     private String searchedName = "";
     private List<Component> foundTiers = null;
     private boolean isSearching = false;
-    private RemotePlayer dummyPlayer = null;
+    private PlayerSkinWidget skinWidget = null;
+    private GameProfile currentProfile = null;
+    private float mouseX = 0.0F;
+    private float mouseY = 0.0F;
     private final String presetName;
 
     public PlayerSearchScreen(Screen parent) {
@@ -44,34 +53,30 @@ public class PlayerSearchScreen extends Screen {
     protected void init() {
         int centerX = this.width / 2;
 
-        if (!isSearching && (searchedName == null || searchedName.isEmpty())) {
-            searchField = new EditBox(this.font, centerX - 80, 60, 160, 20, Component.literal("Oyuncu Adı..."));
-            searchField.setMaxLength(16);
-            this.addRenderableWidget(searchField);
-            searchField.setFocused(true);
+        searchField = new EditBox(this.font, centerX - 80, 60, 160, 20, Component.literal("Oyuncu Adı..."));
+        searchField.setMaxLength(16);
+        this.addRenderableWidget(searchField);
+        searchField.setFocused(true);
 
-            this.addRenderableWidget(Button.builder(Component.literal("Ara").withStyle(s -> s.withColor(0xFF3498DB)), btn -> {
-                startSearch();
-            }).bounds(centerX - 80, 85, 160, 20).build());
-        }
+        searchButton = Button.builder(Component.literal("Ara").withStyle(s -> s.withColor(0x3498DB)), btn -> startSearch())
+                .bounds(centerX - 80, 85, 160, 20).build();
+        this.addRenderableWidget(searchButton);
 
-        if (APIUtils.hasData(searchedName)) {
-            this.addRenderableWidget(Button.builder(Component.literal("Yeni Arama").withStyle(s -> s.withColor(0xFF3498DB)), btn -> {
-                searchedName = "";
-                isSearching = false;
-                dummyPlayer = null;
-                this.rebuildWidgets();
-            }).bounds(centerX - 80, this.height - 55, 160, 20).build());
-        }
+        this.addRenderableWidget(Button.builder(Component.literal("Bitti").withStyle(s -> s.withColor(0xCCCCCC)), btn -> this.minecraft.setScreen(parent))
+                .bounds(centerX - 80, this.height - 30, 160, 20).build());
 
-        this.addRenderableWidget(Button.builder(Component.literal("Bitti").withStyle(s -> s.withColor(0xFFCCCCCC)), btn -> {
-            this.minecraft.setScreen(parent);
-        }).bounds(centerX - 80, this.height - 30, 160, 20).build());
+        updateVisibility();
 
-        if (presetName != null && !presetName.isEmpty() && searchedName.isEmpty()) {
-            searchField.setValue(presetName);
+        if (presetName != null && !presetName.isEmpty()) {
+            searchField.insertText(presetName);
             startSearch();
         }
+    }
+
+    private void updateVisibility() {
+        boolean showSearch = !isSearching && (searchedName == null || searchedName.isEmpty());
+        searchField.visible = showSearch;
+        searchButton.visible = showSearch;
     }
 
     private void startSearch() {
@@ -79,96 +84,188 @@ public class PlayerSearchScreen extends Screen {
         if (searchedName.isEmpty()) return;
 
         isSearching = true;
-        this.rebuildWidgets();
+        foundTiers = null;
+        skinWidget = null;
+        currentProfile = null;
+        updateVisibility();
         APIUtils.fetchSync(searchedName);
 
         new Thread(() -> {
             try {
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setConnectTimeout(3000);
 
                 if (con.getResponseCode() == 200) {
                     try (java.io.InputStreamReader reader = new java.io.InputStreamReader(con.getInputStream())) {
-                        com.google.gson.JsonObject json = new com.google.gson.Gson().fromJson(reader, com.google.gson.JsonObject.class);
-                        String id = json.get("id").getAsString();
-                        String formattedId = id.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
-                        UUID uuid = UUID.fromString(formattedId);
+                        JsonObject json = new Gson().fromJson(reader, JsonObject.class);
+                        String uuidStr = json.get("id").getAsString();
+                        String playerName = json.get("name").getAsString();
+                        String formattedUuid = uuidStr.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
+                        UUID uuid = UUID.fromString(formattedUuid);
 
-                        GameProfile profile = new GameProfile(uuid, searchedName);
-                        if (this.minecraft.level != null) {
-                            this.minecraft.execute(() -> {
-                                dummyPlayer = new RemotePlayer((ClientLevel) this.minecraft.level, profile);
-                            });
+                        // 1. ADIM: DEĞİŞTİRİLEBİLİR BİR MULTIMAP OLUŞTUR (Guava Multimap)
+                        com.google.common.collect.Multimap<String, com.mojang.authlib.properties.Property> tempMap =
+                                com.google.common.collect.HashMultimap.create();
+
+                        // 2. ADIM: SESSION SERVER'DAN SKIN VERİSİNİ ÇEK
+                        URL sessionUrl = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + formattedUuid + "?unsigned=false");
+                        HttpURLConnection sessionCon = (HttpURLConnection) sessionUrl.openConnection();
+
+                        if (sessionCon.getResponseCode() == 200) {
+                            try (java.io.InputStreamReader sReader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
+                                JsonObject sessionJson = new Gson().fromJson(sReader, JsonObject.class);
+
+                                if (sessionJson.has("properties")) {
+                                    com.google.gson.JsonArray props = sessionJson.getAsJsonArray("properties");
+                                    for (int i = 0; i < props.size(); i++) {
+                                        JsonObject p = props.get(i).getAsJsonObject();
+                                        String pName = p.get("name").getAsString();
+                                        String pValue = p.get("value").getAsString();
+                                        String pSig = p.has("signature") ? p.get("signature").getAsString() : null;
+
+                                        tempMap.put(pName, new com.mojang.authlib.properties.Property(pName, pValue, pSig));
+                                    }
+                                }
+                            }
                         }
+
+                        // 3. ADIM: PROPERTYMAP'İ OLUŞTUR VE PARAMETRE OLARAK TEMPMAP'İ VER
+                        com.mojang.authlib.properties.PropertyMap properties = new com.mojang.authlib.properties.PropertyMap(tempMap);
+
+                        // 4. ADIM: YENİ GAMEPROFILE RECORD'UNU OLUŞTUR
+                        GameProfile profileWithSkin = new GameProfile(uuid, playerName, properties);
+
+                        Minecraft.getInstance().execute(() -> {
+                            this.currentProfile = profileWithSkin;
+                            this.skinWidget = null;
+                            this.isSearching = false;
+                        });
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                Minecraft.getInstance().execute(() -> isSearching = false);
             }
         }).start();
     }
 
     @Override
-    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float a) {
-        super.extractRenderState(graphics, mouseX, mouseY, a);
-        int centerX = this.width / 2;
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        this.mouseX = (float)mouseX;
+        this.mouseY = (float)mouseY;
 
-        if (searchedName == null || searchedName.isEmpty()) {
-            graphics.centeredText(this.font, Component.literal("OYUNCU SORGULAMA").withStyle(s -> s.withBold(true).withColor(0xFFFFCC00)), centerX, 40, 0xFFFFCC00);
-        } else {
+        super.extractRenderState(context, mouseX, mouseY, delta);
+        int centerX = this.width / 2;
+        int centerY = this.height / 2;
+
+        if (searchField.visible) {
+            context.centeredText(this.font, Component.literal("OYUNCU SORGULAMA").withStyle(s -> s.withBold(true).withColor(new Color(0xFFCC00).getRGB())), centerX, 40, new Color(0xFFCC00).getRGB());
+            searchField.extractRenderState(context, mouseX, mouseY, delta);
+        }
+
+        if (searchedName != null && !searchedName.isEmpty()) {
             if (APIUtils.hasData(searchedName)) {
                 String error = APIUtils.getError(searchedName);
                 isSearching = false;
 
                 if (error != null) {
-                    graphics.centeredText(this.font, Component.literal(searchedName).withStyle(s -> s.withBold(true).withColor(0xFFFFFFFF)), centerX, 80, 0xFFFFFFFF);
-                    graphics.centeredText(this.font, Component.literal(error).withStyle(s -> s.withColor(0xFFFF5555)), centerX, 100, 0xFFFF5555);
+                    context.centeredText(this.font, Component.literal(error).withStyle(s -> s.withColor(new Color(0xFF5555).getRGB())), centerX, 100, new Color(0xFF5555).getRGB());
                 } else {
                     foundTiers = APIUtils.getAllTiers(searchedName);
-                    graphics.centeredText(this.font, Component.literal(searchedName + "'s profile").withStyle(s -> s.withColor(0xFFFFFFFF)), centerX, 30, 0xFFFFFFFF);
 
-                    if (dummyPlayer != null) {
-                        InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, centerX - 100, 80, centerX - 20, 220, 60, 0.0625F, mouseX, mouseY, dummyPlayer);
+                    context.centeredText(this.font, Component.literal(searchedName + "'s Profile").withStyle(s -> s.withBold(true).withColor(new Color(0xFFFFFF).getRGB())), centerX, 20, new Color(0xFFFFFF).getRGB());
+
+                    if (skinWidget == null && currentProfile != null) {
+                        Minecraft client = Minecraft.getInstance();
+                        try {
+                            SkinManager skinManager = client.getSkinManager();
+                            // 'true' parametresi skini internetten zorla çeker
+                            Supplier<PlayerSkin> skinSupplier = skinManager.createLookup(currentProfile, true);
+
+                            skinWidget = new PlayerSkinWidget(60, 144, client.getEntityModels(), skinSupplier);
+                            skinWidget.setX(centerX - 65);
+                            skinWidget.setY(centerY - 72);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
 
-                    int ry = 90;
-                    graphics.text(this.font, Component.literal("Rankings:").withStyle(s -> s.withColor(0xFFFFFFFF)), centerX + 10, ry, 0xFFFFFFFF);
-                    ry += 15;
+                    if (skinWidget != null) {
+                        try {
+                            skinWidget.extractRenderState(context, mouseX, mouseY, delta);
+                        } catch (Exception ignored) {}
+                    }
 
-                    if (foundTiers.isEmpty()) {
-                        graphics.text(this.font, Component.literal("Tier bulunmuyor").withStyle(s -> s.withColor(0xFFFF5555)), centerX + 10, ry, 0xFFFF5555);
+                    int infoX = centerX + 10;
+                    int infoY = centerY - 40;
+                    int goldColor = new Color(0xFFAA00).getRGB();
+                    context.centeredText(this.font, Component.literal("RANKINGS").withStyle(s -> s.withBold(true).withColor(goldColor)), infoX, infoY, goldColor);
+                    infoY += 15;
+
+                    if (foundTiers == null || foundTiers.isEmpty()) {
+                        int grayColor = new Color(0xAAAAAA).getRGB();
+                        context.centeredText(this.font, Component.literal("Tier bulunmuyor").withStyle(s -> s.withColor(grayColor)), infoX, infoY, grayColor);
                     } else {
                         for (Component tier : foundTiers) {
-                            graphics.text(this.font, tier, centerX + 10, ry, 0xFFFFFFFF);
-                            ry += 12;
+                            int tierColor = new Color(0xFFFFFF).getRGB();
+                            context.centeredText(this.font, tier, infoX, infoY, tierColor);
+                            infoY += 12;
                         }
                     }
                 }
+
+                if (this.children().stream().noneMatch(c -> c instanceof Button && ((Button)c).getMessage().getString().equals("Yeni Arama"))) {
+                    this.addRenderableWidget(Button.builder(Component.literal("Yeni Arama").withStyle(s -> s.withColor(new Color(0x3498DB).getRGB())), btn -> {
+                        searchedName = "";
+                        isSearching = false;
+                        skinWidget = null;
+                        currentProfile = null;
+                        foundTiers = null;
+                        searchField.setValue("");
+                        searchField.setFocused(true);
+                        updateVisibility();
+                        this.removeWidget(btn);
+                    }).bounds(centerX - 80, this.height - 55, 160, 20).build());
+                }
             } else if (isSearching) {
-                graphics.centeredText(this.font, Component.literal("Sistemden Sorgulanıyor...").withStyle(s -> s.withColor(0xFFAAAAAA)), centerX, 100, 0xFFAAAAAA);
+                int loadingColor = new Color(0xAAAAAA).getRGB();
+                context.centeredText(this.font, Component.literal("Sistemden Sorgulanıyor...").withStyle(s -> s.withColor(loadingColor)), centerX, centerY, loadingColor);
             }
         }
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
-        if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
-            if (searchField != null && (searchedName == null || searchedName.isEmpty())) {
-                startSearch();
+    public boolean keyPressed(final KeyEvent event) {
+        int keyCode = event.key();
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (this.searchField.isVisible() && !this.searchField.getValue().isEmpty()) {
+                this.startSearch();
                 return true;
             }
         }
-        if (event.isEscape()) {
-            this.minecraft.setScreen(parent);
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            this.minecraft.setScreen(this.parent);
+            return true;
+        }
+        if (this.searchField.keyPressed(event)) {
             return true;
         }
         return super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(CharacterEvent event) {
-        if (searchField != null && searchField.charTyped(event)) return true;
-        return super.charTyped(event);
+    public boolean mouseDragged(MouseButtonEvent event, final double dx, final double dy) {
+        if (this.skinWidget != null && this.skinWidget.isMouseOver(event.x(), event.y())) {
+            return this.skinWidget.mouseDragged(event, dx, dy);
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (skinWidget != null && skinWidget.isMouseOver(mouseX, mouseY)) {
+            return skinWidget.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 }
