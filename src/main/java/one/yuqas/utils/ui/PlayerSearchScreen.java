@@ -89,6 +89,7 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
+        // startSearch içindeki Thread kısmını bununla değiştir
         new Thread(() -> {
             try {
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
@@ -108,21 +109,46 @@ public class PlayerSearchScreen extends Screen {
                         );
 
                         UUID uuid = UUID.fromString(formattedUuid);
-                        GameProfile profile = new GameProfile(uuid, playerName);
+
+                        // --- SKIN ÇÖZÜMÜ BAŞLANGIÇ ---
+                        // Sadece UUID ile profil oluşturmak yetmez, textures verisini session serverdan çekmeliyiz.
+                        com.google.common.collect.Multimap<String, com.mojang.authlib.properties.Property> tempMap =
+                                com.google.common.collect.HashMultimap.create();
+
+                        URL sessionUrl = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + formattedUuid + "?unsigned=false");
+                        HttpURLConnection sessionCon = (HttpURLConnection) sessionUrl.openConnection();
+
+                        if (sessionCon.getResponseCode() == 200) {
+                            try (java.io.InputStreamReader sReader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
+                                JsonObject sessionJson = new Gson().fromJson(sReader, JsonObject.class);
+                                if (sessionJson.has("properties")) {
+                                    com.google.gson.JsonArray props = sessionJson.getAsJsonArray("properties");
+                                    for (int i = 0; i < props.size(); i++) {
+                                        JsonObject p = props.get(i).getAsJsonObject();
+                                        String pName = p.get("name").getAsString();
+                                        String pValue = p.get("value").getAsString();
+                                        String pSig = p.has("signature") ? p.get("signature").getAsString() : null;
+                                        tempMap.put(pName, new com.mojang.authlib.properties.Property(pName, pValue, pSig));
+                                    }
+                                }
+                            }
+                        }
+
+                        // PropertyMap'i doldurarak profili oluşturuyoruz
+                        com.mojang.authlib.properties.PropertyMap authProps = new com.mojang.authlib.properties.PropertyMap(tempMap);
+                        GameProfile profile = new GameProfile(uuid, playerName, authProps);
+                        // --- SKIN ÇÖZÜMÜ BİTİŞ ---
 
                         MinecraftClient client = MinecraftClient.getInstance();
 
-                        // MC'nin kendi skin provider'ı session server'a bağlanıp
-                        // texture'ları otomatik çeker, PropertyMap'e elle eklemeye gerek yok
-                        client.getSkinProvider().fetchSkinTextures(profile).thenRun(() -> {
-                            client.execute(() -> {
-                                currentProfile = profile;
-                                skinWidget = null;
-                                isSearching = false;
-                            });
+                        // fetchSkinTextures yerine direk supply kullanabiliriz çünkü veriyi elle doldurduk
+                        client.execute(() -> {
+                            currentProfile = profile;
+                            skinWidget = null;
+                            isSearching = false;
                         });
                     }
-                } else if (con.getResponseCode() == 404) {
+                } else {
                     isSearching = false;
                 }
             } catch (Exception e) {
@@ -162,7 +188,7 @@ public class PlayerSearchScreen extends Screen {
                         MinecraftClient client = MinecraftClient.getInstance();
                         try {
                             Supplier<SkinTextures> skinSupplier = client.getSkinProvider()
-                                    .supplySkinTextures(currentProfile, false);
+                                    .supplySkinTextures(currentProfile, true);
 
                             skinWidget = new PlayerSkinWidget(
                                     60,
