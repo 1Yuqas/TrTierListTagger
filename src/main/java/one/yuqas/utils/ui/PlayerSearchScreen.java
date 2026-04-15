@@ -239,6 +239,20 @@ public class PlayerSearchScreen extends Screen {
                     int infoX = centerX + 10;
                     int infoY = centerY - 40;
                     
+                    // Oyuncu Rank ve Total Points bilgileri
+                    int rank = APIUtils.getPlayerRank(searchedName);
+                    int totalPoints = APIUtils.getPlayerTotalPoints(searchedName);
+                    
+                    if (rank > 0) {
+                        context.drawTextWithShadow(this.textRenderer, Text.literal("Rank: " + rank).styled(s -> s.withColor(0x55FF55)), infoX, infoY, 0x55FF55);
+                        infoY += 12;
+                    }
+                    if (totalPoints > 0) {
+                        context.drawTextWithShadow(this.textRenderer, Text.literal("Points: " + totalPoints).styled(s -> s.withColor(0xFFFF55)), infoX, infoY, 0xFFFF55);
+                        infoY += 12;
+                    }
+                    
+                    infoY += 3;
                     context.drawTextWithShadow(this.textRenderer, Text.literal("RANKINGS").styled(s -> s.withBold(true).withColor(0xFFAA00)), infoX, infoY, 0xFFAA00);
                     infoY += 15;
 

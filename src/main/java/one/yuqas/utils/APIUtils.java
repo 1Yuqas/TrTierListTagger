@@ -20,6 +20,8 @@ public class APIUtils {
     private static final ConcurrentHashMap<String, ConcurrentHashMap<TierType, Text>> CACHE = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, String> ERRORS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Long> FETCH_TIME = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Integer> PLAYER_RANKS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Integer> PLAYER_TOTAL_POINTS = new ConcurrentHashMap<>();
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2);
 
     private static final List<String> TIER_ORDER = List.of(
@@ -80,6 +82,14 @@ public class APIUtils {
 
                     ConcurrentHashMap<TierType, Text> map = new ConcurrentHashMap<>();
                     ERRORS.remove(key);
+
+                    // Rank ve Total Points verilerini kaydet
+                    if (json.has("rank")) {
+                        PLAYER_RANKS.put(key, json.get("rank").getAsInt());
+                    }
+                    if (json.has("total_points")) {
+                        PLAYER_TOTAL_POINTS.put(key, json.get("total_points").getAsInt());
+                    }
 
                     for (TierType type : TierType.values()) {
                         if (type == TierType.BEST) continue;
@@ -187,5 +197,15 @@ public class APIUtils {
     public static void clearCache() {
         CACHE.clear();
         FETCH_TIME.clear();
+        PLAYER_RANKS.clear();
+        PLAYER_TOTAL_POINTS.clear();
+    }
+
+    public static int getPlayerRank(String playerName) {
+        return PLAYER_RANKS.getOrDefault(playerName.toLowerCase(), -1);
+    }
+
+    public static int getPlayerTotalPoints(String playerName) {
+        return PLAYER_TOTAL_POINTS.getOrDefault(playerName.toLowerCase(), -1);
     }
 }
