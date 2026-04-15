@@ -18,12 +18,8 @@
 -
 <img src="image/Screenshot_1.png" width="400">
 
-**Taglar**
--
-<img src="image/img.png" width="400">
-
 **Oyuncu Arama**
 -
-<img src="image/img_2.png" width="240">
-<img src="image/img_1.png" width="300">
+<img src="image/Screenshot_3.png" width="300">
+<img src="image/Screenshot_2.png" width="200">
 
