@@ -6,7 +6,6 @@ import net.minecraft.text.Text;
 import one.yuqas.utils.enums.Config;
 import one.yuqas.utils.enums.TierType;
 
-import java.awt.*;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -40,7 +39,7 @@ public class APIUtils {
             fetchAsync(playerName);
         }
 
-        return TierConfig.getBoolean(Config.SHOW_PLACEHOLDER) ? Text.literal("§7...") : Text.empty();
+        return TierConfigUtil.getBoolean(Config.SHOW_PLACEHOLDER) ? Text.literal("§7...") : Text.empty();
     }
 
     private static void fetchAsync(String playerName) {
@@ -73,7 +72,12 @@ public class APIUtils {
                         return;
                     }
 
+                    if (!json.has("rankings") || !json.get("rankings").isJsonObject()) {
+                        ERRORS.put(key, "Tier verisi geçersiz veya boş");
+                        return;
+                    }
                     JsonObject rankings = json.getAsJsonObject("rankings");
+
                     ConcurrentHashMap<TierType, Text> map = new ConcurrentHashMap<>();
                     ERRORS.remove(key);
 
@@ -84,14 +88,18 @@ public class APIUtils {
                             String tier = rankings.get(apiKey).getAsString();
                             if (tier != null && !tier.equalsIgnoreCase("none")) {
                                 String tierName = tier.toUpperCase();
-                                int colorValue = tierName.startsWith("HT") ?
-                                        new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
+
+                                // Zaten belirlediğimiz LT rengini alıyoruz
+                                int htColorValue = type.getHtColor();
+                                int tierColorValue = tierName.startsWith("HT") ? type.getHtColor() : type.getLtColor();
 
                                 String typeName = type.name().substring(0, 1).toUpperCase() + type.name().substring(1).toLowerCase();
+
                                 Text formatted = Text.empty()
                                         .append(Text.literal(type.getIcon() + " "))
-                                        .append(Text.literal(typeName + ": ").styled(style -> style.withColor(0xFF55FF))) // Purple color for type
-                                        .append(Text.literal(tierName).styled(style -> style.withColor(colorValue).withBold(true)));
+                                        .append(Text.literal(typeName + ": ").styled(style -> style.withColor(htColorValue)))
+                                        .append(Text.literal(tierName).styled(style -> style.withColor(tierColorValue).withBold(true)));
+
                                 map.put(type, formatted);
                             }
                         }
@@ -100,12 +108,12 @@ public class APIUtils {
                     BestTierResult best = findBest(rankings);
                     if (best != null) {
                         String tierName = best.tier.toUpperCase();
-                        int colorValue = tierName.startsWith("HT") ?
-                                new Color(0x48FF00).getRGB() : new Color(0xF6402A).getRGB();
+
+                        int colorValue = tierName.startsWith("HT") ? best.type.getHtColor() : best.type.getLtColor();
 
                         Text formattedTag = Text.empty()
                                 .append(Text.literal(best.type.getIcon() + " "))
-                                .append(Text.literal(tierName).styled(style -> style.withColor(colorValue).withBold(true)));
+                                .append(Text.literal(tierName).styled(style -> style.withColor(colorValue).withBold(false)));
 
                         map.put(TierType.BEST, formattedTag);
                     }
