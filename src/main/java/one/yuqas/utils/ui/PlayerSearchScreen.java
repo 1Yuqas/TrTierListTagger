@@ -87,10 +87,8 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
-        // Profil UUID'sini Minecraft API'sinden çek
         new Thread(() -> {
             try {
-                // Minecraft Yggdrasil API'sinden oyuncu profili çek
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.setConnectTimeout(5000);
@@ -102,7 +100,6 @@ public class PlayerSearchScreen extends Screen {
                         String uuidStr = json.get("id").getAsString();
                         String playerName = json.get("name").getAsString();
 
-                        // UUID string'ini format et (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
                         String formattedUuid = uuidStr.replaceFirst(
                                 "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})",
                                 "$1-$2-$3-$4-$5"
@@ -112,7 +109,6 @@ public class PlayerSearchScreen extends Screen {
                         UUID uuid = UUID.fromString(formattedUuid);
                         GameProfile profile = new GameProfile(uuid, playerName);
 
-                        // SessionServer'dan profile properties'lerini doldur (skin URL'si için)
                         try {
                             URL sessionUrl = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + formattedUuid);
                             HttpURLConnection sessionCon = (HttpURLConnection) sessionUrl.openConnection();
@@ -123,7 +119,6 @@ public class PlayerSearchScreen extends Screen {
                                 try (java.io.InputStreamReader sessionReader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
                                     JsonObject sessionJson = new Gson().fromJson(sessionReader, JsonObject.class);
 
-                                    // Properties array'den textures'ı ara
                                     if (sessionJson.has("properties")) {
                                         com.google.gson.JsonArray propsArray = sessionJson.getAsJsonArray("properties");
                                         for (int i = 0; i < propsArray.size(); i++) {
@@ -138,17 +133,15 @@ public class PlayerSearchScreen extends Screen {
                                 }
                             }
 
-                            // Main thread'de profile'ı set et ve skin fetch et
                             MinecraftClient client = MinecraftClient.getInstance();
                             client.execute(() -> {
                                 currentProfile = profile;
                                 fakePlayer = new OtherClientPlayerEntity(client.world, profile);
                             });
 
-                            // Skin cache olsun diye zaman ver
                             new Thread(() -> {
                                 try {
-                                    Thread.sleep(200);  // 200ms bekle skin fetch'in cache edilmesi için
+                                    Thread.sleep(200);
                                     client.execute(() -> {
                                         isSearching = false;
                                     });
@@ -199,38 +192,51 @@ public class PlayerSearchScreen extends Screen {
 
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s Profile").styled(s -> s.withBold(true).withColor(0xFFFFFF)), centerX, 20, 0xFFFFFF);
 
-                    // --- WIDGET OLUŞTUR (Profile API'den gelecek) ---
                     if (fakePlayer == null && currentProfile != null && client.world != null) {
-                        // 1.20.1'de Widget yerine sanal oyuncu entity'si kullanıyoruz
                         fakePlayer = new OtherClientPlayerEntity(client.world, currentProfile);
 
-                        // Skin'in yüklenmesi için (opsiyonel ama sağlıklı olur)
                         client.getSkinProvider().loadSkin(currentProfile, (type, identifier, texture) -> {
-                            // Skin yüklendiğinde yapılacak ekstra bir şey varsa buraya...
                         }, true);
                     }
 
-                    // Widget'ı render et
                     if (fakePlayer != null) {
-                        // Karakterin duracağı pozisyon
                         int x = centerX - 35;
-                        int y = centerY + 60; // Ayak hizası
+                        int y = centerY + 60;
 
 
                         net.minecraft.client.gui.screen.ingame.InventoryScreen.drawEntity(
                                 context,
                                 x, y,
-                                50, // Boyut (Büyütmek istersen artır)
+                                50,
                                 (float)(x) - mouseX,
                                 (float)(y - 70) - mouseY,
                                 fakePlayer
                         );
                     }
                     int infoX = centerX + 10;
-                    int infoY = centerY - 40;
+                    int infoY = centerY - 60;
 
-                    context.drawTextWithShadow(this.textRenderer, Text.literal("RANKINGS").styled(s -> s.withBold(true).withColor(0xFFAA00)), infoX, infoY, 0xFFAA00);
-                    infoY += 15;
+                    int rank = APIUtils.getPlayerRank(searchedName);
+                    int totalPoints = APIUtils.getPlayerTotalPoints(searchedName);
+
+                    if (rank > 0) {
+                        context.drawTextWithShadow(this.textRenderer,
+                                Text.literal("Rank: ").styled(s -> s.withColor(0xFFFFFF))
+                                        .append(Text.literal(String.valueOf("#"+rank)).styled(s -> s.withColor(0x55FF55))),
+                                infoX, infoY, 0xFFFFFF);
+                        infoY += 12;
+                    }
+
+                    if (totalPoints > 0) {
+                        context.drawTextWithShadow(this.textRenderer,
+                                Text.literal("Points: ").styled(s -> s.withColor(0xFFFFFF))
+                                        .append(Text.literal(String.valueOf(totalPoints)).styled(s -> s.withColor(0xFFFF55))),
+                                infoX, infoY, 0xFFFFFF);
+                        infoY += 12;
+                    }
+
+                    infoY += 3;
+                    infoY += 4;
 
                     if (foundTiers.isEmpty()) {
                         context.drawTextWithShadow(this.textRenderer, Text.literal("Tier bulunmuyor").styled(s -> s.withColor(0xAAAAAA)), infoX, infoY, 0xAAAAAA);
@@ -286,9 +292,8 @@ public class PlayerSearchScreen extends Screen {
     }
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        // Eğer fare karakterin olduğu bölgedeyse veya genel olarak sürüklendiğinde dönsün istiyorsan:
         if (fakePlayer != null) {
-            playerRotation -= (float) deltaX * 1.5F; // Hassasiyeti 1.5F ile ayarlayabilirsin
+            playerRotation -= (float) deltaX * 1.5F;
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
