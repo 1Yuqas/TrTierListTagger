@@ -1,21 +1,44 @@
 {
-	"schemaVersion": 1,
-	"id": "trtierlisttagger",
-	"version": "${version}",
-	"name": "TrTierListTagger",
-	"authors": ["1Yuqas","ekky25"],
-	"license": ["MIT"],
-	"icon": "assets/trtierlisttagger/logo.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": ["one.yuqas.TrTierListTagger"],
-		"modmenu": ["one.yuqas.utils.ui.ModMenuIntegration"]
-	},
-	"mixins": ["trtierlisttagger.mixins.json"],
-	"depends": {
-		"fabricloader": ">=0.18.4",
-		"minecraft": "1.21.11",
-		"java": ">=21",
-		"fabric-api": "*"
-	}
+  "schemaVersion": 1,
+  "id": "trtierlisttagger",
+  "version": "${version}",
+  "name": "TrTierListTagger",
+  "contact": {
+    "homepage": "https://trtierlist.com/",
+    "discord": "https://discord.gg/trtierlist",
+    "sources": "https://github.com/1Yuqas/TrTierListTagger"
+  },
+  "authors": [
+    "1Yuqas",
+    "ekky25"
+  ],
+  "license": [
+    "MIT"
+  ],
+  "icon": "assets/trtierlisttagger/logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "one.yuqas.TrTierListTagger"
+    ],
+    "modmenu": [
+      "one.yuqas.utils.ui.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "trtierlisttagger.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "1.21.8",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.discord": "https://discord.gg/trtierlist"
+      }
+    }
+  }
 }

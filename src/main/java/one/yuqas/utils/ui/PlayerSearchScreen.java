@@ -1,14 +1,12 @@
 package one.yuqas.utils.ui;
 
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.PlayerSkinWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.entity.player.SkinTextures;
+import net.minecraft.client.util.SkinTextures;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
@@ -131,8 +129,8 @@ public class PlayerSearchScreen extends Screen {
                             }
                         }
 
-                        com.mojang.authlib.properties.PropertyMap authProps = new com.mojang.authlib.properties.PropertyMap(tempMap);
-                        GameProfile profile = new GameProfile(uuid, playerName, authProps);
+//                        com.mojang.authlib.properties.PropertyMap authProps = new com.mojang.authlib.properties.PropertyMap();
+                        GameProfile profile = new GameProfile(uuid, playerName);
 
                         MinecraftClient client = MinecraftClient.getInstance();
 
@@ -162,7 +160,7 @@ public class PlayerSearchScreen extends Screen {
         int centerY = this.height / 2;
 
         if (searchField.visible) {
-            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("OYUNCU SORGULAMA").styled(s -> s.withBold(true).withColor(new Color(0xFFEA00).getRGB())), centerX, 40, 0xFFCC00);
+            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("OYUNCU SORGULAMA").styled(s -> s.withBold(true).withColor(new Color(0xFFEA00).getRGB())), centerX, 40, new Color(0xFFCC00).getRGB());
             searchField.render(context, mouseX, mouseY, delta);
         }
 
@@ -178,11 +176,17 @@ public class PlayerSearchScreen extends Screen {
 
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s Profile").styled(s -> s.withBold(true).withColor(new Color(0xFFFFFF).getRGB())), centerX, 20, new Color(0xFFFFFF).getRGB());
 
+
                     if (skinWidget == null && currentProfile != null) {
                         MinecraftClient client = MinecraftClient.getInstance();
+
                         try {
+                            boolean hasSkin = currentProfile.getProperties().containsKey("textures");
+
                             Supplier<SkinTextures> skinSupplier = client.getSkinProvider()
-                                    .supplySkinTextures(currentProfile, true);
+                                    .getSkinTexturesSupplier(currentProfile);
+
+                            SkinTextures textures = skinSupplier.get();
 
                             skinWidget = new PlayerSkinWidget(
                                     60,
@@ -195,6 +199,7 @@ public class PlayerSearchScreen extends Screen {
                             e.printStackTrace();
                         }
                     }
+
 
                     if (skinWidget != null) {
                         try {
@@ -261,34 +266,32 @@ public class PlayerSearchScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        int keyCode = input.key();
-
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
-            if (searchField.isVisible() && !searchField.getText().isEmpty()) {
+            if (searchField.visible && !searchField.getText().isEmpty()) {
                 startSearch();
                 return true;
             }
         }
 
-        if (input.isEscape()) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             this.client.setScreen(parent);
             return true;
         }
 
-        if (searchField.keyPressed(input)) {
+        if (searchField.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
 
-        return super.keyPressed(input);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
-    public boolean mouseDragged(Click click, double offsetX, double offsetY) {
-        if (skinWidget != null && skinWidget.isMouseOver(click.x(), click.y())) {
-            return skinWidget.mouseDragged(click, offsetX, offsetY);
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (skinWidget != null && skinWidget.isMouseOver(mouseX, mouseY)) {
+            return skinWidget.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
         }
-        return super.mouseDragged(click, offsetX, offsetY);
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override

@@ -24,7 +24,7 @@ public class TierCommand {
                                     if (networkHandler != null) {
                                         return net.minecraft.command.CommandSource.suggestMatching(
                                                 networkHandler.getPlayerList().stream()
-                                                        .map(entry -> entry.getProfile().name()),
+                                                        .map(entry -> entry.getProfile().getName()),
                                                 builder
                                         );
                                     }
