@@ -89,7 +89,6 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
-        // startSearch içindeki Thread kısmını bununla değiştir
         new Thread(() -> {
             try {
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
@@ -110,8 +109,6 @@ public class PlayerSearchScreen extends Screen {
 
                         UUID uuid = UUID.fromString(formattedUuid);
 
-                        // --- SKIN ÇÖZÜMÜ BAŞLANGIÇ ---
-                        // Sadece UUID ile profil oluşturmak yetmez, textures verisini session serverdan çekmeliyiz.
                         com.google.common.collect.Multimap<String, com.mojang.authlib.properties.Property> tempMap =
                                 com.google.common.collect.HashMultimap.create();
 
@@ -134,14 +131,11 @@ public class PlayerSearchScreen extends Screen {
                             }
                         }
 
-                        // PropertyMap'i doldurarak profili oluşturuyoruz
                         com.mojang.authlib.properties.PropertyMap authProps = new com.mojang.authlib.properties.PropertyMap(tempMap);
                         GameProfile profile = new GameProfile(uuid, playerName, authProps);
-                        // --- SKIN ÇÖZÜMÜ BİTİŞ ---
 
                         MinecraftClient client = MinecraftClient.getInstance();
 
-                        // fetchSkinTextures yerine direk supply kullanabiliriz çünkü veriyi elle doldurduk
                         client.execute(() -> {
                             currentProfile = profile;
                             skinWidget = null;
