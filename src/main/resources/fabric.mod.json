@@ -14,7 +14,7 @@
 	"mixins": ["trtierlisttagger.mixins.json"],
 	"depends": {
 		"fabricloader": ">=0.18.4",
-		"minecraft": ">=1.21.8 <=1.21.11",
+		"minecraft": "1.21.11",
 		"java": ">=21",
 		"fabric-api": "*"
 	}
