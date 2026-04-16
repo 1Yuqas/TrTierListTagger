@@ -103,11 +103,9 @@ public class PlayerSearchScreen extends Screen {
                         String formattedUuid = uuidStr.replaceFirst("(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})", "$1-$2-$3-$4-$5");
                         UUID uuid = UUID.fromString(formattedUuid);
 
-                        // 1. ADIM: DEĞİŞTİRİLEBİLİR BİR MULTIMAP OLUŞTUR (Guava Multimap)
                         com.google.common.collect.Multimap<String, com.mojang.authlib.properties.Property> tempMap =
                                 com.google.common.collect.HashMultimap.create();
 
-                        // 2. ADIM: SESSION SERVER'DAN SKIN VERİSİNİ ÇEK
                         URL sessionUrl = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + formattedUuid + "?unsigned=false");
                         HttpURLConnection sessionCon = (HttpURLConnection) sessionUrl.openConnection();
 
@@ -129,10 +127,8 @@ public class PlayerSearchScreen extends Screen {
                             }
                         }
 
-                        // 3. ADIM: PROPERTYMAP'İ OLUŞTUR VE PARAMETRE OLARAK TEMPMAP'İ VER
                         com.mojang.authlib.properties.PropertyMap properties = new com.mojang.authlib.properties.PropertyMap(tempMap);
 
-                        // 4. ADIM: YENİ GAMEPROFILE RECORD'UNU OLUŞTUR
                         GameProfile profileWithSkin = new GameProfile(uuid, playerName, properties);
 
                         Minecraft.getInstance().execute(() -> {
@@ -179,7 +175,6 @@ public class PlayerSearchScreen extends Screen {
                         Minecraft client = Minecraft.getInstance();
                         try {
                             SkinManager skinManager = client.getSkinManager();
-                            // 'true' parametresi skini internetten zorla çeker
                             Supplier<PlayerSkin> skinSupplier = skinManager.createLookup(currentProfile, true);
 
                             skinWidget = new PlayerSkinWidget(60, 144, client.getEntityModels(), skinSupplier);
@@ -197,10 +192,29 @@ public class PlayerSearchScreen extends Screen {
                     }
 
                     int infoX = centerX + 10;
-                    int infoY = centerY - 40;
-                    int goldColor = new Color(0xFFAA00).getRGB();
-                    context.centeredText(this.font, Component.literal("RANKINGS").withStyle(s -> s.withBold(true).withColor(goldColor)), infoX, infoY, goldColor);
-                    infoY += 15;
+                    int infoY = centerY - 60;
+
+                    int rank = APIUtils.getPlayerRank(searchedName);
+                    int totalPoints = APIUtils.getPlayerTotalPoints(searchedName);
+
+                    if (rank > 0) {
+                        context.text(this.font,
+                                Component.literal("Rank: ").withStyle(s -> s.withColor(new Color(0xFFFFFF).getRGB()))
+                                        .append(Component.literal("#"+rank).withStyle(s -> s.withColor(new Color(0x55FF55).getRGB()))),
+                                infoX, infoY, new Color(0xFFFFFF).getRGB());
+                        infoY += 12;
+                    }
+
+                    if (totalPoints > 0) {
+                        context.text(this.font,
+                                Component.literal("Points: ").withStyle(s -> s.withColor(new Color(0xFFFFFF).getRGB()))
+                                        .append(Component.literal(String.valueOf(totalPoints)).withStyle(s -> s.withColor(new Color(0xFFFF55).getRGB()))),
+                                infoX, infoY, new Color(0xFFFFFF).getRGB());
+                        infoY += 12;
+                    }
+
+                    infoY += 3;
+                    infoY += 4;
 
                     if (foundTiers == null || foundTiers.isEmpty()) {
                         int grayColor = new Color(0xAAAAAA).getRGB();
@@ -208,7 +222,7 @@ public class PlayerSearchScreen extends Screen {
                     } else {
                         for (Component tier : foundTiers) {
                             int tierColor = new Color(0xFFFFFF).getRGB();
-                            context.centeredText(this.font, tier, infoX, infoY, tierColor);
+                            context.text(this.font, tier, infoX, infoY, tierColor);
                             infoY += 12;
                         }
                     }
