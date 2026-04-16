@@ -83,7 +83,6 @@ public class APIUtils {
                     ConcurrentHashMap<TierType, Text> map = new ConcurrentHashMap<>();
                     ERRORS.remove(key);
 
-                    // Rank ve Total Points verilerini kaydet
                     if (json.has("rank")) {
                         PLAYER_RANKS.put(key, json.get("rank").getAsInt());
                     }
@@ -99,7 +98,6 @@ public class APIUtils {
                             if (tier != null && !tier.equalsIgnoreCase("none")) {
                                 String tierName = tier.toUpperCase();
 
-                                // Zaten belirlediğimiz LT rengini alıyoruz
                                 int htColorValue = type.getHtColor();
                                 int tierColorValue = tierName.startsWith("HT") ? type.getHtColor() : type.getLtColor();
 

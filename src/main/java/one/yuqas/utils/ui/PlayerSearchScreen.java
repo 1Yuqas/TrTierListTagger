@@ -9,6 +9,8 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.SkinTextures;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
+
+import java.awt.*;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -85,10 +87,8 @@ public class PlayerSearchScreen extends Screen {
         updateVisibility();
         APIUtils.fetchSync(searchedName);
 
-        // Profil UUID'sini Minecraft API'sinden çek
         new Thread(() -> {
             try {
-                // Minecraft Yggdrasil API'sinden oyuncu profili çek
                 URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + searchedName);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 con.setConnectTimeout(5000);
@@ -100,7 +100,6 @@ public class PlayerSearchScreen extends Screen {
                         String uuidStr = json.get("id").getAsString();
                         String playerName = json.get("name").getAsString();
 
-                        // UUID string'ini format et (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
                         String formattedUuid = uuidStr.replaceFirst(
                             "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})",
                             "$1-$2-$3-$4-$5"
@@ -110,7 +109,6 @@ public class PlayerSearchScreen extends Screen {
                         UUID uuid = UUID.fromString(formattedUuid);
                         GameProfile profile = new GameProfile(uuid, playerName);
 
-                        // SessionServer'dan profile properties'lerini doldur (skin URL'si için)
                         try {
                             URL sessionUrl = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + formattedUuid);
                             HttpURLConnection sessionCon = (HttpURLConnection) sessionUrl.openConnection();
@@ -121,7 +119,6 @@ public class PlayerSearchScreen extends Screen {
                                 try (java.io.InputStreamReader sessionReader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
                                     JsonObject sessionJson = new Gson().fromJson(sessionReader, JsonObject.class);
                                     
-                                    // Properties array'den textures'ı ara
                                     if (sessionJson.has("properties")) {
                                         com.google.gson.JsonArray propsArray = sessionJson.getAsJsonArray("properties");
                                         for (int i = 0; i < propsArray.size(); i++) {
@@ -136,18 +133,16 @@ public class PlayerSearchScreen extends Screen {
                                 }
                             }
                             
-                            // Main thread'de profile'ı set et ve skin fetch et
                             MinecraftClient client = MinecraftClient.getInstance();
                             client.execute(() -> {
                                 currentProfile = profile;
-                                skinWidget = null;  // Widget'ı sıfırla, yenisi oluşturulsun
+                                skinWidget = null;
                                 client.getSkinProvider().fetchSkinTextures(profile);
                             });
                             
-                            // Skin cache olsun diye zaman ver
                             new Thread(() -> {
                                 try {
-                                    Thread.sleep(200);  // 200ms bekle skin fetch'in cache edilmesi için
+                                    Thread.sleep(200);
                                     client.execute(() -> {
                                         isSearching = false;
                                     });
@@ -195,32 +190,25 @@ public class PlayerSearchScreen extends Screen {
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(error).styled(s -> s.withColor(0xFF5555)), centerX, 100, 0xFF5555);
                 } else {
                     foundTiers = APIUtils.getAllTiers(searchedName);
-                    
+
                     context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(searchedName + "'s Profile").styled(s -> s.withBold(true).withColor(0xFFFFFF)), centerX, 20, 0xFFFFFF);
 
-                    // --- WIDGET OLUŞTUR (Profile API'den gelecek) ---
                     if (skinWidget == null && currentProfile != null) {
-                        // PlayerSkinWidget'ı oluştur
                         MinecraftClient client = MinecraftClient.getInstance();
-                        
+
                         try {
-                            // Textures property var mı kontrol et (crack oyuncu kontrolü)
                             boolean hasSkin = currentProfile.getProperties().containsKey("textures");
 
-                            // Skin supplier - profile skin texture'sini sağla
-                            // Eğer textures yoksa (crack), Steve skin gösterilir
                             Supplier<SkinTextures> skinSupplier = client.getSkinProvider()
                                 .getSkinTexturesSupplier(currentProfile);
-                            
-                            // Debug: Supplier'ı kontrol et
+
                             SkinTextures textures = skinSupplier.get();
-                            
-                            // Widget'ı eski boyuta geri çek: 60x144
+
                             skinWidget = new PlayerSkinWidget(
-                                60,   // Genişlik (orijinal)
-                                144,   // Yükseklik (orijinal)
-                                client.getLoadedEntityModels(), // 3D Modeller
-                                skinSupplier // Skin dokusu supplier (cape dahil)
+                                60,
+                                144,
+                                client.getLoadedEntityModels(),
+                                skinSupplier
                             );
                             skinWidget.setPosition(centerX - 65, centerY - 72);
                         } catch (Exception e) {
@@ -228,7 +216,6 @@ public class PlayerSearchScreen extends Screen {
                         }
                     }
 
-                    // Widget'ı render et
                     if (skinWidget != null) {
                         try {
                             skinWidget.render(context, (int)mouseX, (int)mouseY, delta);
@@ -237,24 +224,29 @@ public class PlayerSearchScreen extends Screen {
                     } else {
                     }
                     int infoX = centerX + 10;
-                    int infoY = centerY - 40;
-                    
-                    // Oyuncu Rank ve Total Points bilgileri
+                    int infoY = centerY - 60;
+
                     int rank = APIUtils.getPlayerRank(searchedName);
                     int totalPoints = APIUtils.getPlayerTotalPoints(searchedName);
-                    
+
                     if (rank > 0) {
-                        context.drawTextWithShadow(this.textRenderer, Text.literal("Rank: " + rank).styled(s -> s.withColor(0x55FF55)), infoX, infoY, 0x55FF55);
+                        context.drawTextWithShadow(this.textRenderer,
+                                Text.literal("Rank: ").styled(s -> s.withColor(0xFFFFFF))
+                                        .append(Text.literal(String.valueOf("#"+rank)).styled(s -> s.withColor(0x55FF55))),
+                                infoX, infoY, 0xFFFFFF);
                         infoY += 12;
                     }
+
                     if (totalPoints > 0) {
-                        context.drawTextWithShadow(this.textRenderer, Text.literal("Points: " + totalPoints).styled(s -> s.withColor(0xFFFF55)), infoX, infoY, 0xFFFF55);
+                        context.drawTextWithShadow(this.textRenderer,
+                                Text.literal("Points: ").styled(s -> s.withColor(0xFFFFFF))
+                                        .append(Text.literal(String.valueOf(totalPoints)).styled(s -> s.withColor(0xFFFF55))),
+                                infoX, infoY, 0xFFFFFF);
                         infoY += 12;
                     }
-                    
+
                     infoY += 3;
-                    context.drawTextWithShadow(this.textRenderer, Text.literal("RANKINGS").styled(s -> s.withBold(true).withColor(0xFFAA00)), infoX, infoY, 0xFFAA00);
-                    infoY += 15;
+                    infoY += 4;
 
                     if (foundTiers.isEmpty()) {
                         context.drawTextWithShadow(this.textRenderer, Text.literal("Tier bulunmuyor").styled(s -> s.withColor(0xAAAAAA)), infoX, infoY, 0xAAAAAA);
