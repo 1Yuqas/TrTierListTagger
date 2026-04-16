@@ -210,10 +210,29 @@ public class PlayerSearchScreen extends Screen {
                     }
 
                     int infoX = centerX + 10;
-                    int infoY = centerY - 40;
+                    int infoY = centerY - 60;
 
-                    context.drawTextWithShadow(this.textRenderer, Text.literal("RANKINGS").styled(s -> s.withBold(true).withColor(new Color(0xFFAA00).getRGB())), infoX, infoY, new Color(0xFFAA00).getRGB());
-                    infoY += 15;
+                    int rank = APIUtils.getPlayerRank(searchedName);
+                    int totalPoints = APIUtils.getPlayerTotalPoints(searchedName);
+
+                    if (rank > 0) {
+                        context.drawTextWithShadow(this.textRenderer,
+                                Text.literal("Rank: ").styled(s -> s.withColor(new Color(0xFFFFFF).getRGB()))
+                                        .append(Text.literal("#"+rank).styled(s -> s.withColor(new Color(0x55FF55).getRGB()))),
+                                infoX, infoY, new Color(0xFFFFFF).getRGB());
+                        infoY += 12;
+                    }
+
+                    if (totalPoints > 0) {
+                        context.drawTextWithShadow(this.textRenderer,
+                                Text.literal("Points: ").styled(s -> s.withColor(new Color(0xFFFFFF).getRGB()))
+                                        .append(Text.literal(String.valueOf(totalPoints)).styled(s -> s.withColor(new Color(0xFFFF55).getRGB()))),
+                                infoX, infoY, new Color(0xFFFFFF).getRGB());
+                        infoY += 12;
+                    }
+
+                    infoY += 3;
+                    infoY += 4;
 
                     if (foundTiers.isEmpty()) {
                         context.drawTextWithShadow(this.textRenderer, Text.literal("Tier bulunmuyor").styled(s -> s.withColor(new Color(0xAAAAAA).getRGB())), infoX, infoY, new Color(0xAAAAAA).getRGB());
