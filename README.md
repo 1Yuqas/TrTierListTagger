@@ -16,7 +16,7 @@
 
 **Tier Tagger GUI**
 -
-<img src="image/Screenshot_1.png" width="400">
+<img width="562" height="471" alt="image" src="https://github.com/user-attachments/assets/d269a587-5829-4803-9209-4e6da3572617" />
 
 **Oyuncu Arama**
 -
