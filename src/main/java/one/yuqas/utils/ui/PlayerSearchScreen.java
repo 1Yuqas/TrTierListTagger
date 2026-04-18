@@ -105,42 +105,58 @@ public class PlayerSearchScreen extends Screen {
                                 "$1-$2-$3-$4-$5"
                         );
 
+
                         UUID uuid = UUID.fromString(formattedUuid);
+                        GameProfile profile = new GameProfile(uuid, playerName);
 
-                        com.google.common.collect.Multimap<String, com.mojang.authlib.properties.Property> tempMap =
-                                com.google.common.collect.HashMultimap.create();
+                        try {
+                            URL sessionUrl = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + formattedUuid);
+                            HttpURLConnection sessionCon = (HttpURLConnection) sessionUrl.openConnection();
+                            sessionCon.setConnectTimeout(5000);
+                            sessionCon.setReadTimeout(5000);
 
-                        URL sessionUrl = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + formattedUuid + "?unsigned=false");
-                        HttpURLConnection sessionCon = (HttpURLConnection) sessionUrl.openConnection();
+                            if (sessionCon.getResponseCode() == 200) {
+                                try (java.io.InputStreamReader sessionReader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
+                                    JsonObject sessionJson = new Gson().fromJson(sessionReader, JsonObject.class);
 
-                        if (sessionCon.getResponseCode() == 200) {
-                            try (java.io.InputStreamReader sReader = new java.io.InputStreamReader(sessionCon.getInputStream())) {
-                                JsonObject sessionJson = new Gson().fromJson(sReader, JsonObject.class);
-                                if (sessionJson.has("properties")) {
-                                    com.google.gson.JsonArray props = sessionJson.getAsJsonArray("properties");
-                                    for (int i = 0; i < props.size(); i++) {
-                                        JsonObject p = props.get(i).getAsJsonObject();
-                                        String pName = p.get("name").getAsString();
-                                        String pValue = p.get("value").getAsString();
-                                        String pSig = p.has("signature") ? p.get("signature").getAsString() : null;
-                                        tempMap.put(pName, new com.mojang.authlib.properties.Property(pName, pValue, pSig));
+                                    if (sessionJson.has("properties")) {
+                                        com.google.gson.JsonArray propsArray = sessionJson.getAsJsonArray("properties");
+                                        for (int i = 0; i < propsArray.size(); i++) {
+                                            JsonObject prop = propsArray.get(i).getAsJsonObject();
+                                            if ("textures".equals(prop.get("name").getAsString())) {
+                                                String textureValue = prop.get("value").getAsString();
+                                                profile.getProperties().put("textures", new com.mojang.authlib.properties.Property("textures", textureValue));
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
                             }
+
+                            MinecraftClient client = MinecraftClient.getInstance();
+                            client.execute(() -> {
+                                currentProfile = profile;
+                                skinWidget = null;
+                                client.getSkinProvider().fetchSkinTextures(profile);
+                            });
+
+                            new Thread(() -> {
+                                try {
+                                    Thread.sleep(200);
+                                    client.execute(() -> {
+                                        isSearching = false;
+                                    });
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            }).start();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            isSearching = false;
                         }
 
-//                        com.mojang.authlib.properties.PropertyMap authProps = new com.mojang.authlib.properties.PropertyMap();
-                        GameProfile profile = new GameProfile(uuid, playerName);
-
-                        MinecraftClient client = MinecraftClient.getInstance();
-
-                        client.execute(() -> {
-                            currentProfile = profile;
-                            skinWidget = null;
-                            isSearching = false;
-                        });
                     }
-                } else {
+                } else if (con.getResponseCode() == 404) {
                     isSearching = false;
                 }
             } catch (Exception e) {
@@ -148,7 +164,9 @@ public class PlayerSearchScreen extends Screen {
                 isSearching = false;
             }
         }).start();
+
     }
+
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
@@ -199,7 +217,6 @@ public class PlayerSearchScreen extends Screen {
                             e.printStackTrace();
                         }
                     }
-
 
                     if (skinWidget != null) {
                         try {
