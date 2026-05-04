@@ -7,7 +7,7 @@ import net.minecraft.client.gui.screen.TitleScreen;
 import one.yuqas.command.TierCommand;
 import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.VersionChecker;
-import one.yuqas.gui.UpdateScreen;
+import one.yuqas.utils.ui.UpdateScreen;
 
 public class TrTierListTagger implements ModInitializer {
     private boolean hasShownUpdate = false;
