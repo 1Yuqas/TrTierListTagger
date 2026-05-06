@@ -24,7 +24,7 @@ public class TrTierListTagger implements ModInitializer {
                 hasShownUpdate = true;
             }
         });
-        
+
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             TierCommand.register(dispatcher);
         });
