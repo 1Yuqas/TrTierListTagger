@@ -194,25 +194,26 @@ public class PlayerSearchScreen extends Screen {
 
                     if (fakePlayer == null && currentProfile != null && client.world != null) {
                         fakePlayer = new OtherClientPlayerEntity(client.world, currentProfile);
-
-                        client.getSkinProvider().loadSkin(currentProfile, (type, identifier, texture) -> {
-                        }, true);
+                        client.getSkinProvider().loadSkin(currentProfile, (type, identifier, texture) -> {}, true);
                     }
 
                     if (fakePlayer != null) {
-                        int x = centerX - 35;
-                        int y = centerY + 60;
+                        int entityX = centerX - 60;
+                        int entityY = centerY + 40;
+                        int size = 45;
 
+                        float lookX = (float)(entityX) - mouseX;
+                        float lookY = (float)(entityY - 60) - mouseY;
 
-                        net.minecraft.client.gui.screen.ingame.InventoryScreen.drawEntity(
+                        InventoryScreen.drawEntity(
                                 context,
-                                x, y,
-                                50,
-                                (float)(x) - mouseX,
-                                (float)(y - 70) - mouseY,
+                                entityX, entityY,
+                                size,
+                                lookX, lookY,
                                 fakePlayer
                         );
                     }
+
                     int infoX = centerX + 10;
                     int infoY = centerY - 60;
 
