@@ -162,7 +162,7 @@ public class PlayerSearchScreen extends Screen {
         int centerY = this.height / 2;
 
         if (searchField.visible) {
-            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("OYUNCU SORGULAMA").styled(s -> s.withBold(true).withColor(new Color(0xFFEA00).getRGB())), centerX, 40, 0xFFCC00);
+            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("OYUNCU SORGULAMA").styled(s -> s.withBold(true).withColor(new Color(0xFFEA00).getRGB())), centerX, 40, new Color(0xFFCC00).getRGB());
             searchField.render(context, mouseX, mouseY, delta);
         }
 
