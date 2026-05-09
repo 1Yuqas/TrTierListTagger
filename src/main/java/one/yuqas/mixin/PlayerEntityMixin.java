@@ -7,7 +7,6 @@ import net.minecraft.text.Text;
 import one.yuqas.utils.APIUtils;
 import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
-import one.yuqas.utils.enums.TierType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -18,11 +17,12 @@ public abstract class PlayerEntityMixin {
     private Text injectTier(Text original) {
         if (!TierConfigUtil.getBoolean(Config.TAG)) return original;
         PlayerEntity self = (PlayerEntity) (Object) this;
-        Text tierText = APIUtils.getFormattedTier(TierType.BEST, self.getName().getString());
+        Text tierText = APIUtils.getFormattedTier(TierConfigUtil.getTierType(), self.getName().getString());
 
-        if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
+        if (tierText == null || tierText.getString().isEmpty()) {
             return original;
         }
+
         boolean isRightSide = TierConfigUtil.getBoolean(Config.SIDE);
         MutableText result = Text.empty();
         if (isRightSide) {

@@ -7,9 +7,15 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Util;
 import one.yuqas.utils.VersionChecker;
 import net.fabricmc.loader.api.FabricLoader;
+import java.awt.Color;
 
 public class UpdateScreen extends Screen {
     private final Screen parent;
+
+    // Color ile ARGB renkler
+    private static final int RED = new Color(255, 85, 85).getRGB();
+    private static final int WHITE = new Color(255, 255, 255).getRGB();
+    private static final int GREEN = new Color(85, 255, 85).getRGB();
 
     public UpdateScreen(Screen parent) {
         super(Text.literal("Update Available"));
@@ -29,13 +35,23 @@ public class UpdateScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
         super.render(context, mouseX, mouseY, delta);
 
-        String current = FabricLoader.getInstance().getModContainer("trtierlisttagger").get().getMetadata().getVersion().getFriendlyString();
+        String current = FabricLoader.getInstance()
+                .getModContainer("trtierlisttagger")
+                .get()
+                .getMetadata()
+                .getVersion()
+                .getFriendlyString();
 
-        context.drawCenteredTextWithShadow(this.textRenderer, "TrTierListTagger Güncelleme!", this.width / 2, this.height / 2 - 50, 0xFF5555);
-        context.drawCenteredTextWithShadow(this.textRenderer, "Sizin sürümünüz: " + current, this.width / 2, this.height / 2 - 30, 0xFFFFFF);
-        context.drawCenteredTextWithShadow(this.textRenderer, "Yeni sürüm: " + VersionChecker.latestVersion, this.width / 2, this.height / 2 - 15, 0x55FF55);
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                "TrTierListTagger Güncelleme!",
+                this.width / 2, this.height / 2 - 50, RED);
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                "Sizin sürümünüz: " + current,
+                this.width / 2, this.height / 2 - 30, WHITE);
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                "Yeni sürüm: " + VersionChecker.latestVersion,
+                this.width / 2, this.height / 2 - 15, GREEN);
     }
 }
