@@ -27,16 +27,14 @@ public class UpdateScreen extends Screen {
         }).dimensions(this.width / 2 + 5, this.height / 2 + 10, 100, 20).build());
     }
 
-@Override
-public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-    this.renderBackground(context, mouseX, mouseY, delta);
-    super.render(context, mouseX, mouseY, delta); // önce butonları çiz
-    
-    // sonra yazıları üste çiz
-    String current = FabricLoader.getInstance().getModContainer("trtierlisttagger").get().getMetadata().getVersion().getFriendlyString();
-    
-    context.drawCenteredTextWithShadow(this.textRenderer, "TrTierListTagger Güncelleme!", this.width / 2, this.height / 2 - 50, 0xFF5555);
-    context.drawCenteredTextWithShadow(this.textRenderer, "Sizin sürümünüz: " + current, this.width / 2, this.height / 2 - 30, 0xFFFFFF);
-    context.drawCenteredTextWithShadow(this.textRenderer, "Yeni sürüm: " + VersionChecker.latestVersion, this.width / 2, this.height / 2 - 15, 0x55FF55);
-}
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        super.render(context, mouseX, mouseY, delta);
+
+        String current = FabricLoader.getInstance().getModContainer("trtierlisttagger").get().getMetadata().getVersion().getFriendlyString();
+
+        context.drawCenteredTextWithShadow(this.textRenderer, "TrTierListTagger Güncelleme!", this.width / 2, this.height / 2 - 50, 0xFF5555);
+        context.drawCenteredTextWithShadow(this.textRenderer, "Sizin sürümünüz: " + current, this.width / 2, this.height / 2 - 30, 0xFFFFFF);
+        context.drawCenteredTextWithShadow(this.textRenderer, "Yeni sürüm: " + VersionChecker.latestVersion, this.width / 2, this.height / 2 - 15, 0x55FF55);
+    }
 }

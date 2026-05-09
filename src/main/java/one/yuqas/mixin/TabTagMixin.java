@@ -8,65 +8,89 @@ import net.minecraft.util.Formatting;
 import one.yuqas.utils.APIUtils;
 import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
-import one.yuqas.utils.enums.TierType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+
+import java.util.regex.Pattern;
 
 @Mixin(PlayerListEntry.class)
 public class TabTagMixin {
 
     private Text customTier = null;
 
+    private static final Pattern SEPARATOR_PATTERN = Pattern.compile("^[─━═█]+$");
+    private static final Pattern PING_PATTERN = Pattern.compile("\\d+ms");
+    private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-zA-Z0-9_]");
+
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Text injectTab(Text original) {
         PlayerListEntry self = (PlayerListEntry) (Object) this;
 
-        Text baseName = original;
-        if (baseName == null) {
-            if (self.getScoreboardTeam() != null) {
-                baseName = self.getScoreboardTeam().decorateName(Text.literal(self.getProfile().getName()));
-            } else {
-                baseName = Text.literal(self.getProfile().getName());
-            }
-        }
+        Text baseName = original != null ? original : getFallbackName(self);
 
         try {
             if (!TierConfigUtil.getBoolean(Config.TAB_TAG)) return baseName;
 
-            String playerName = getPlayerName();
-            if (playerName == null || playerName.isEmpty()) return baseName;
+            String playerName = getRealPlayerName(self, original);
+            if (playerName == null) return baseName;
 
-            Text tierText = customTier;
-            if (tierText == null) {
-                tierText = APIUtils.getFormattedTier(TierType.BEST, playerName);
-            }
+            Text tierText = customTier != null ? customTier :
+                    APIUtils.getFormattedTier(TierConfigUtil.getTierType(), playerName);
 
-            if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
-                return baseName;
-            }
+            if (tierText == null || tierText.getString().isEmpty()) return baseName;
 
-            boolean isRightSide = TierConfigUtil.getBoolean(Config.TAB_SIDE);
-            MutableText finalEntry = Text.empty();
-            Text separator = Text.literal(" | ").formatted(Formatting.GRAY);
-
-            if (isRightSide) {
-                return finalEntry.append(baseName).append(separator).append(tierText);
-            } else {
-                return finalEntry.append(tierText).append(separator).append(baseName);
-            }
+            return buildFinalText(baseName, tierText);
 
         } catch (Exception e) {
             return baseName;
         }
     }
 
-    private String getPlayerName() {
-        try {
-            PlayerListEntry self = (PlayerListEntry) (Object) this;
-            if (self.getProfile() == null) return null;
-            return self.getProfile().getName();
-        } catch (Exception e) {
-            return null;
+    private Text getFallbackName(PlayerListEntry entry) {
+        if (entry.getScoreboardTeam() != null && entry.getProfile() != null) {
+            return entry.getScoreboardTeam().decorateName(Text.literal(entry.getProfile().getName()));
+        }
+        if (entry.getProfile() != null && !entry.getProfile().getName().isEmpty()) {
+            return Text.literal(entry.getProfile().getName());
+        }
+        return Text.literal("UNKNOWN");
+    }
+
+    private String getRealPlayerName(PlayerListEntry entry, Text displayName) {
+        if (entry.getProfile() != null && !entry.getProfile().getName().isEmpty()) {
+            return entry.getProfile().getName();
+        }
+
+        if (displayName == null) return null;
+
+        String display = displayName.getString();
+
+        if (SEPARATOR_PATTERN.matcher(display).matches()) return null;
+
+        if (!display.matches(".*[a-zA-Z_]{2,}.*")) return null;
+
+        String cleaned = PING_PATTERN.matcher(display).replaceAll("");
+        cleaned = NON_ALPHANUMERIC.matcher(cleaned).replaceAll(" ").trim();
+
+        String[] parts = cleaned.split("\\s+");
+        String bestName = "";
+        for (String part : parts) {
+            if (part.length() > bestName.length() && part.length() >= 2) {
+                bestName = part;
+            }
+        }
+
+        return bestName.isEmpty() ? null : bestName;
+    }
+
+    private Text buildFinalText(Text baseName, Text tierText) {
+        MutableText result = Text.empty();
+        Text separator = Text.literal(" | ").formatted(Formatting.GRAY);
+
+        if (TierConfigUtil.getBoolean(Config.TAB_SIDE)) {
+            return result.append(baseName).append(separator).append(tierText);
+        } else {
+            return result.append(tierText).append(separator).append(baseName);
         }
     }
 }
