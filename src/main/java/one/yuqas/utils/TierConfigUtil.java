@@ -63,7 +63,6 @@ public class TierConfigUtil {
             else if (def instanceof Number) obj.addProperty("value", (Number) def);
             else obj.addProperty("value", def.toString());
 
-            obj.addProperty("description", key.getDescription());
             root.add(key.getKey(), obj);
         }
 
