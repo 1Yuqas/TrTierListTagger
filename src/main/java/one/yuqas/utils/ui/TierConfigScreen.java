@@ -6,15 +6,21 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
+import one.yuqas.utils.enums.TierType;
 import org.lwjgl.glfw.GLFW;
+
+import java.awt.*;
 
 public class TierConfigScreen extends Screen {
     private final Screen parent;
     private boolean isEnabled;
     private boolean isRightSide;
-    private boolean placeholder;
+    private TierType selectedTier;
+    private int tierIndex;
     private boolean isTabEnabled;
     private boolean isTabRightSide;
+
+    private static final TierType[] SELECTABLE_TIERS = TierType.values();
 
     public TierConfigScreen(Screen parent) {
         super(Text.literal("TRTierList Ayarları"));
@@ -27,12 +33,12 @@ public class TierConfigScreen extends Screen {
 
         isEnabled = TierConfigUtil.getBoolean(Config.TAG);
         this.addDrawableChild(ButtonWidget.builder(
-                getStatusText("Etiket Görünümü: ", isEnabled),
+                getStatusText("§eEtiket Görünümü: ", isEnabled),
                 btn -> {
                     isEnabled = !isEnabled;
-                    btn.setMessage(getStatusText("Etiket Görünümü: ", isEnabled));
+                    btn.setMessage(getStatusText("§eEtiket Görünümü: ", isEnabled));
                 }
-        ).dimensions(centerX - 100, 55, 200, 20).build());
+        ).dimensions(centerX - 100, 45, 200, 20).build());
 
         isRightSide = TierConfigUtil.getBoolean(Config.SIDE);
         this.addDrawableChild(ButtonWidget.builder(
@@ -41,25 +47,26 @@ public class TierConfigScreen extends Screen {
                     isRightSide = !isRightSide;
                     btn.setMessage(getSideText(isRightSide));
                 }
-        ).dimensions(centerX - 100, 95, 200, 20).build());
+        ).dimensions(centerX - 100, 80, 200, 20).build());
 
-        placeholder = TierConfigUtil.getBoolean(Config.SHOW_PLACEHOLDER);
+        selectedTier = TierConfigUtil.getTierType();
+        tierIndex = findTierIndex(selectedTier);
         this.addDrawableChild(ButtonWidget.builder(
-                getStatusText("Bekleme Göstergesi: ", placeholder),
+                getTierTypeText(),
                 btn -> {
-                    placeholder = !placeholder;
-                    btn.setMessage(getStatusText("Bekleme Göstergesi: ", placeholder));
+                    cycleTier();
+                    btn.setMessage(getTierTypeText());
                 }
-        ).dimensions(centerX - 100, 135, 200, 20).build());
+        ).dimensions(centerX - 100, 115, 200, 20).build());
 
         isTabEnabled = TierConfigUtil.getBoolean(Config.TAB_TAG);
         this.addDrawableChild(ButtonWidget.builder(
-                getStatusText("Tab Menüsünde Etiket: ", isTabEnabled),
+                getStatusText("§eTab Menüsünde Etiket: ", isTabEnabled),
                 btn -> {
                     isTabEnabled = !isTabEnabled;
-                    btn.setMessage(getStatusText("Tab Menüsünde Etiket: ", isTabEnabled));
+                    btn.setMessage(getStatusText("§eTab Menüsünde Etiket: ", isTabEnabled));
                 }
-        ).dimensions(centerX - 100, 175, 200, 20).build());
+        ).dimensions(centerX - 100, 150, 200, 20).build());
 
         isTabRightSide = TierConfigUtil.getBoolean(Config.TAB_SIDE);
         this.addDrawableChild(ButtonWidget.builder(
@@ -68,41 +75,74 @@ public class TierConfigScreen extends Screen {
                     isTabRightSide = !isTabRightSide;
                     btn.setMessage(getTabSideText(isTabRightSide));
                 }
-        ).dimensions(centerX - 100, 215, 200, 20).build());
+        ).dimensions(centerX - 100, 185, 200, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Oyuncu Ara").styled(s -> s.withColor(0xFFCC00)), btn -> {
-            this.client.setScreen(new PlayerSearchScreen(this));
-        }).dimensions(centerX - 100, 250, 200, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(
+                Text.literal("Oyuncu Ara").styled(s -> s.withColor(0xFFCC00)),
+                btn -> this.client.setScreen(new PlayerSearchScreen(this))
+        ).dimensions(centerX - 100, 220, 200, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Kaydet").styled(s -> s.withColor(0x2ECC71)), btn -> {
-            save();
-            this.client.setScreen(parent);
-        }).dimensions(centerX - 105, 275, 100, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(
+                Text.literal("Kaydet").styled(s -> s.withColor(0x2ECC71)),
+                btn -> {
+                    save();
+                    this.client.setScreen(parent);
+                }
+        ).dimensions(centerX - 105, 255, 100, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Vazgeç").styled(s -> s.withColor(0xE74C3C)), btn -> {
-            this.client.setScreen(parent);
-        }).dimensions(centerX + 5, 275, 100, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(
+                Text.literal("Vazgeç").styled(s -> s.withColor(0xE74C3C)),
+                btn -> this.client.setScreen(parent)
+        ).dimensions(centerX + 5, 255, 100, 20).build());
+    }
+
+    private int findTierIndex(TierType type) {
+        for (int i = 0; i < SELECTABLE_TIERS.length; i++) {
+            if (SELECTABLE_TIERS[i] == type) return i;
+        }
+        return 0;
+    }
+
+    private void cycleTier() {
+        tierIndex = (tierIndex + 1) % SELECTABLE_TIERS.length;
+        selectedTier = SELECTABLE_TIERS[tierIndex];
+    }
+
+    private Text getTierTypeText() {
+        String name = selectedTier.name();
+        int color = selectedTier.getHtColor();
+
+        return Text.empty()
+                .append(Text.literal("Tier: ").styled(s -> s.withColor(0xFFFFFF)))
+                .append(Text.literal(selectedTier.getIcon() + " "))
+                .append(Text.literal(name).styled(s -> s.withColor(color).withBold(true)));
     }
 
     private Text getStatusText(String prefix, boolean val) {
-        return Text.literal(prefix).append(Text.literal(val ? "AKTİF" : "PASİF")
-                .styled(style -> style.withColor(val ? 0x2ECC71 : 0xE74C3C)));
+        return Text.empty()
+                .append(Text.literal(prefix))
+                .append(Text.literal(val ? "AKTİF" : "PASİF")
+                        .styled(style -> style.withColor(val ? 0x2ECC71 : 0xE74C3C)));
     }
 
     private Text getSideText(boolean isRight) {
-        return Text.literal("Etiket Konumu: ").append(Text.literal(isRight ? "SAĞ" : "SOL")
-                .styled(style -> style.withColor(0x3498DB)));
+        return Text.empty()
+                .append(Text.literal("Etiket Konumu: "))
+                .append(Text.literal(isRight ? "SAĞ" : "SOL")
+                        .styled(style -> style.withColor(0x3498DB)));
     }
 
     private Text getTabSideText(boolean isRight) {
-        return Text.literal("Tab Konumu: ").append(Text.literal(isRight ? "SAĞ" : "SOL")
-                .styled(style -> style.withColor(0x3498DB)));
+        return Text.empty()
+                .append(Text.literal("Tab Konumu: "))
+                .append(Text.literal(isRight ? "SAĞ" : "SOL")
+                        .styled(style -> style.withColor(0x3498DB)));
     }
 
     private void save() {
         TierConfigUtil.set(Config.TAG, isEnabled);
         TierConfigUtil.set(Config.SIDE, isRightSide);
-        TierConfigUtil.set(Config.SHOW_PLACEHOLDER, placeholder);
+        TierConfigUtil.set(Config.TIER_TYPE, selectedTier.name());
         TierConfigUtil.set(Config.TAB_TAG, isTabEnabled);
         TierConfigUtil.set(Config.TAB_SIDE, isTabRightSide);
         TierConfigUtil.save();
@@ -114,13 +154,19 @@ public class TierConfigScreen extends Screen {
 
         int centerX = this.width / 2;
 
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 15, 0xFFCC00);
+        context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 10, new Color(0xFFCC00).getRGB());
 
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAG.getDescription()), centerX, 45, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SIDE.getDescription()), centerX, 85, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.SHOW_PLACEHOLDER.getDescription()), centerX, 125, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_TAG.getDescription()), centerX, 165, 0xCCCCCC);
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(Config.TAB_SIDE.getDescription()), centerX, 205, 0xCCCCCC);
+        int descY = 35;
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                Text.literal(Config.TAG.getDescription()), centerX, descY, new Color(0x999999).getRGB());
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                Text.literal(Config.SIDE.getDescription()), centerX, descY + 35, new Color(0x999999).getRGB());
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                Text.literal(Config.TIER_TYPE.getDescription()), centerX, descY + 70, new Color(0x999999).getRGB());
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                Text.literal(Config.TAB_TAG.getDescription()), centerX, descY + 105, new Color(0x999999).getRGB());
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                Text.literal(Config.TAB_SIDE.getDescription()), centerX, descY + 140, new Color(0x999999).getRGB());
     }
 
     @Override
@@ -130,5 +176,10 @@ public class TierConfigScreen extends Screen {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public void close() {
+        this.client.setScreen(parent);
     }
 }
