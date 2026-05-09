@@ -12,61 +12,86 @@ import one.yuqas.utils.enums.TierType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
+import java.util.regex.Pattern;
+
 @Mixin(PlayerInfo.class)
 public class TabTagMixin {
 
     private Component customTier = null;
 
+    private static final Pattern SEPARATOR_PATTERN = Pattern.compile("^[─━═█]+$");
+    private static final Pattern PING_PATTERN = Pattern.compile("\\d+ms");
+    private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-zA-Z0-9_]");
+
     @ModifyReturnValue(method = "getTabListDisplayName", at = @At("RETURN"))
     private Component injectTab(Component original) {
         PlayerInfo self = (PlayerInfo) (Object) this;
 
-        Component baseName = original;
-        if (baseName == null) {
-            if (self.getTeam() != null) {
-                baseName = self.getTeam().getFormattedName(Component.literal(self.getProfile().name()));
-            } else {
-                baseName = Component.literal(self.getProfile().name());
-            }
-        }
+        Component baseName = original != null ? original : getFallbackName(self);
 
         try {
             if (!TierConfigUtil.getBoolean(Config.TAB_TAG)) return baseName;
 
-            String playerName = getPlayerName();
-            if (playerName == null || playerName.isEmpty()) return baseName;
+            String playerName = getRealPlayerName(self, original);
+            if (playerName == null) return baseName;
 
-            Component tierText = customTier;
-            if (tierText == null) {
-                tierText = APIUtils.getFormattedTier(TierType.BEST, playerName);
-            }
+            Component tierText = customTier != null ? customTier :
+                    APIUtils.getFormattedTier(TierConfigUtil.getTierType(), playerName);
 
-            if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
-                return baseName;
-            }
+            if (tierText == null || tierText.getString().isEmpty()) return baseName;
 
-            boolean isRightSide = TierConfigUtil.getBoolean(Config.TAB_SIDE);
-            MutableComponent finalEntry = Component.empty();
-            Component separator = Component.literal(" | ").withStyle(ChatFormatting.GRAY);
-
-            if (isRightSide) {
-                return finalEntry.append(baseName).append(separator).append(tierText);
-            } else {
-                return finalEntry.append(tierText).append(separator).append(baseName);
-            }
+            return buildFinalText(baseName, tierText);
 
         } catch (Exception e) {
             return baseName;
         }
     }
 
-    private String getPlayerName() {
-        try {
-            PlayerInfo self = (PlayerInfo) (Object) this;
-            if (self.getProfile() == null) return null;
-            return self.getProfile().name();
-        } catch (Exception e) {
-            return null;
+    private Component getFallbackName(PlayerInfo entry) {
+        if (entry.getTeam() != null && entry.getProfile() != null) {
+            return entry.getTeam().getFormattedName(Component.literal(entry.getProfile().name()));
+        }
+        if (entry.getProfile() != null && !entry.getProfile().name().isEmpty()) {
+            return Component.literal(entry.getProfile().name());
+        }
+        return Component.literal("UNKNOWN");
+    }
+
+    private String getRealPlayerName(PlayerInfo entry, Component displayName) {
+        if (entry.getProfile() != null && !entry.getProfile().name().isEmpty()) {
+            return entry.getProfile().name();
+        }
+
+        if (displayName == null) return null;
+
+        String display = displayName.getString();
+
+        if (SEPARATOR_PATTERN.matcher(display).matches()) return null;
+
+        if (!display.matches(".*[a-zA-Z_]{2,}.*")) return null;
+
+        String cleaned = PING_PATTERN.matcher(display).replaceAll("");
+        cleaned = NON_ALPHANUMERIC.matcher(cleaned).replaceAll(" ").trim();
+
+        String[] parts = cleaned.split("\\s+");
+        String bestName = "";
+        for (String part : parts) {
+            if (part.length() > bestName.length() && part.length() >= 2) {
+                bestName = part;
+            }
+        }
+
+        return bestName.isEmpty() ? null : bestName;
+    }
+
+    private Component buildFinalText(Component baseName, Component tierText) {
+        MutableComponent result = Component.empty();
+        Component separator = Component.literal(" | ").withStyle(ChatFormatting.GRAY);
+
+        if (TierConfigUtil.getBoolean(Config.TAB_SIDE)) {
+            return result.append(baseName).append(separator).append(tierText);
+        } else {
+            return result.append(tierText).append(separator).append(baseName);
         }
     }
 }

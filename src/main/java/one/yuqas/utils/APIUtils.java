@@ -3,165 +3,141 @@ package one.yuqas.utils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
-import one.yuqas.utils.enums.Config;
 import one.yuqas.utils.enums.TierType;
 
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class APIUtils {
     private static final String API_URL = "https://api.trtierlist.com/api/profile/";
     private static final Gson GSON = new Gson();
-
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<TierType, Component>> CACHE = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, String> ERRORS = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, Long> FETCH_TIME = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, Integer> PLAYER_RANKS = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, Integer> PLAYER_TOTAL_POINTS = new ConcurrentHashMap<>();
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(2);
+    private static final long CACHE_DURATION = 30_000;
+
+    private static final Map<String, PlayerData> PLAYER_DATA = new ConcurrentHashMap<>();
+    private static final Map<String, Long> FETCH_TIME = new ConcurrentHashMap<>();
 
     private static final List<String> TIER_ORDER = List.of(
-            "LT5","HT5", "LT4","HT4", "LT3","HT3", "LT2","HT2", "LT1","HT1"
+            "LT5", "HT5", "LT4", "HT4", "LT3", "HT3", "LT2", "HT2", "LT1", "HT1"
     );
 
     public static Component getFormattedTier(TierType type, String playerName) {
         if (playerName == null || playerName.isEmpty()) return Component.empty();
         String key = playerName.toLowerCase();
 
-        if (CACHE.containsKey(key) && CACHE.get(key).containsKey(type)) {
-            return CACHE.get(key).get(type);
+        PlayerData data = PLAYER_DATA.get(key);
+        if (data != null && data.hasTier(type)) {
+            return data.getTierText(type);
         }
 
-        if (System.currentTimeMillis() - FETCH_TIME.getOrDefault(key, 0L) > 30000) {
-            FETCH_TIME.put(key, System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        if (now - FETCH_TIME.getOrDefault(key, 0L) > CACHE_DURATION) {
+            FETCH_TIME.put(key, now);
             fetchAsync(playerName);
         }
 
-        return TierConfigUtil.getBoolean(Config.SHOW_PLACEHOLDER) ? Component.literal("§7...") : Component.empty();
+        return Component.empty();
     }
 
     private static void fetchAsync(String playerName) {
-        EXECUTOR.submit(() -> {
-            String key = playerName.toLowerCase();
-            try {
-                URL url = new URL(API_URL + playerName);
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setConnectTimeout(5000);
-                con.setRequestProperty("User-Agent", "Mozilla/5.0");
-
-                int responseCode = con.getResponseCode();
-                if (responseCode != 200) {
-                    if (responseCode == 404 || responseCode == 400) {
-                        ERRORS.put(key, "Oyuncu kayıt değil");
-                    } else {
-                        ERRORS.put(key, "Sunucu hatası: " + responseCode);
-                    }
-                    return;
-                }
-
-                try (InputStreamReader reader = new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8)) {
-                    JsonObject json = GSON.fromJson(reader, JsonObject.class);
-                    if (json.has("error")) {
-                        ERRORS.put(key, "Oyuncu kayıt değil");
-                        return;
-                    }
-                    if (!json.has("rankings")) {
-                        ERRORS.put(key, "Tier verisi bulunamadı");
-                        return;
-                    }
-
-                    if (!json.has("rankings") || !json.get("rankings").isJsonObject()) {
-                        ERRORS.put(key, "Tier verisi geçersiz veya boş");
-                        return;
-                    }
-                    JsonObject rankings = json.getAsJsonObject("rankings");
-
-                    ConcurrentHashMap<TierType, Component> map = new ConcurrentHashMap<>();
-                    ERRORS.remove(key);
-
-                    if (json.has("rank")) {
-                        PLAYER_RANKS.put(key, json.get("rank").getAsInt());
-                    }
-                    if (json.has("total_points")) {
-                        PLAYER_TOTAL_POINTS.put(key, json.get("total_points").getAsInt());
-                    }
-
-
-                    for (TierType type : TierType.values()) {
-                        if (type == TierType.BEST) continue;
-                        String apiKey = type.name().toLowerCase();
-                        if (rankings.has(apiKey)) {
-                            String tier = rankings.get(apiKey).getAsString();
-                            if (tier != null && !tier.equalsIgnoreCase("none")) {
-                                String tierName = tier.toUpperCase();
-
-                                int htColorValue = type.getHtColor();
-                                int tierColorValue = tierName.startsWith("HT") ? type.getHtColor() : type.getLtColor();
-
-                                String typeName = type.name().substring(0, 1).toUpperCase() + type.name().substring(1).toLowerCase();
-
-                                Component formatted = Component.empty()
-                                        .append(Component.literal(type.getIcon() + " "))
-                                        .append(Component.literal(typeName + ": ").withStyle(style -> style.withColor(htColorValue)))
-                                        .append(Component.literal(tierName).withStyle(style -> style.withColor(tierColorValue).withBold(true)));
-
-                                map.put(type, formatted);
-                            }
-                        }
-                    }
-
-                    BestTierResult best = findBest(rankings);
-                    if (best != null) {
-                        String tierName = best.tier.toUpperCase();
-
-                        int colorValue = tierName.startsWith("HT") ? best.type.getHtColor() : best.type.getLtColor();
-
-                        Component formattedTag = Component.empty()
-                                .append(Component.literal(best.type.getIcon() + " "))
-                                .append(Component.literal(tierName).withStyle(style -> style.withColor(colorValue).withBold(false)));
-
-                        map.put(TierType.BEST, formattedTag);
-                    }
-                    CACHE.put(key, map);
-                }
-            } catch (Exception e) {
-                ERRORS.put(playerName.toLowerCase(), "Bağlantı hatası");
-                e.printStackTrace();
-            }
-        });
-    }
-
-    public static List<Component> getAllTiers(String playerName) {
-        String key = playerName.toLowerCase();
-        if (CACHE.containsKey(key)) {
-            return CACHE.get(key).entrySet().stream()
-                    .filter(e -> e.getKey() != TierType.BEST)
-                    .map(java.util.Map.Entry::getValue)
-                    .toList();
-        }
-        return List.of();
-    }
-
-    public static String getError(String playerName) {
-        return ERRORS.get(playerName.toLowerCase());
-    }
-
-    public static boolean hasData(String playerName) {
-        String key = playerName.toLowerCase();
-        return CACHE.containsKey(key) || ERRORS.containsKey(key);
+        EXECUTOR.submit(() -> fetchPlayerData(playerName));
     }
 
     public static void fetchSync(String playerName) {
-        fetchAsync(playerName);
+        fetchPlayerData(playerName);
     }
 
+    private static void fetchPlayerData(String playerName) {
+        String key = playerName.toLowerCase();
+        try {
+            JsonObject json = fetchJson(playerName);
+            if (json == null) return;
 
-    private static String colorize(String text) {
-        return text.replace("&", "§");
+            if (json.has("error") || !json.has("rankings") || !json.get("rankings").isJsonObject()) {
+                setError(key, "Oyuncu kayıt değil");
+                return;
+            }
+
+            JsonObject rankings = json.getAsJsonObject("rankings");
+            PlayerData data = new PlayerData();
+
+            if (json.has("rank")) data.rank = json.get("rank").getAsInt();
+            if (json.has("total_points")) data.totalPoints = json.get("total_points").getAsInt();
+
+            for (TierType type : TierType.values()) {
+                if (type == TierType.BEST) continue;
+
+                String apiKey = type.name().toLowerCase();
+                if (rankings.has(apiKey)) {
+                    String tier = rankings.get(apiKey).getAsString();
+                    if (tier != null && !tier.equalsIgnoreCase("none")) {
+                        data.setTierText(type, formatTierText(type, tier));
+                    }
+                }
+            }
+
+            BestTierResult best = findBest(rankings);
+            if (best != null) {
+                data.setTierText(TierType.BEST, formatBestText(best));
+            }
+
+            PLAYER_DATA.put(key, data);
+
+        } catch (Exception e) {
+            setError(key, "Bağlantı hatası");
+            e.printStackTrace();
+        }
+    }
+
+    private static JsonObject fetchJson(String playerName) {
+        String key = playerName.toLowerCase();
+        try {
+            URL url = new URL(API_URL + playerName);
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setConnectTimeout(5000);
+            con.setReadTimeout(5000);
+            con.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+            int responseCode = con.getResponseCode();
+            if (responseCode != 200) {
+                String error = (responseCode == 404 || responseCode == 400)
+                        ? "Oyuncu kayıt değil"
+                        : "Sunucu hatası: " + responseCode;
+                setError(key, error);
+                return null;
+            }
+
+            try (InputStreamReader reader = new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8)) {
+                return GSON.fromJson(reader, JsonObject.class);
+            }
+        } catch (Exception e) {
+            setError(key, "Bağlantı hatası");
+            return null;
+        }
+    }
+
+    private static Component formatTierText(TierType type, String tier) {
+        String tierName = tier.toUpperCase();
+        int tierColor = tierName.startsWith("HT") ? type.getHtColor() : type.getLtColor();
+        String typeName = capitalize(type.name());
+
+        return Component.empty()
+                .append(Component.literal(type.getIcon() + " "))
+                .append(Component.literal(typeName + ": ").withStyle(s -> s.withColor(type.getHtColor())))
+                .append(Component.literal(tierName).withStyle(s -> s.withColor(tierColor).withBold(true)));
+    }
+
+    private static Component formatBestText(BestTierResult best) {
+        String tierName = best.tier.toUpperCase();
+        int color = tierName.startsWith("HT") ? best.type.getHtColor() : best.type.getLtColor();
+
+        return Component.empty()
+                .append(Component.literal(best.type.getIcon() + " "))
+                .append(Component.literal(tierName).withStyle(s -> s.withColor(color).withBold(false)));
     }
 
     private static BestTierResult findBest(JsonObject rankings) {
@@ -172,39 +148,91 @@ public class APIUtils {
             if (type == TierType.BEST) continue;
 
             String apiKey = type.name().toLowerCase();
-            if (rankings.has(apiKey)) {
-                String tier = rankings.get(apiKey).getAsString();
-                if (tier == null || tier.equalsIgnoreCase("none")) continue;
+            if (!rankings.has(apiKey)) continue;
 
-                if (bestTier == null || isBetter(tier, bestTier)) {
-                    bestTier = tier;
-                    bestType = type;
-                }
+            String tier = rankings.get(apiKey).getAsString();
+            if (tier == null || tier.equalsIgnoreCase("none")) continue;
+
+            if (bestTier == null || isBetterTier(tier, bestTier)) {
+                bestTier = tier;
+                bestType = type;
             }
         }
         return (bestTier != null) ? new BestTierResult(bestType, bestTier) : null;
     }
 
-    private static boolean isBetter(String current, String best) {
-        int currentIndex = TIER_ORDER.indexOf(current.toUpperCase());
-        int bestIndex = TIER_ORDER.indexOf(best.toUpperCase());
-        return currentIndex > bestIndex;
+    private static boolean isBetterTier(String current, String best) {
+        int curIdx = TIER_ORDER.indexOf(current.toUpperCase());
+        int bestIdx = TIER_ORDER.indexOf(best.toUpperCase());
+        return curIdx > bestIdx;
     }
 
-    private record BestTierResult(TierType type, String tier) {}
+    public static List<Component> getAllTiers(String playerName) {
+        PlayerData data = PLAYER_DATA.get(playerName.toLowerCase());
+        if (data == null) return List.of();
 
-    public static void clearCache() {
-        CACHE.clear();
-        FETCH_TIME.clear();
-        PLAYER_RANKS.clear();
-        PLAYER_TOTAL_POINTS.clear();
+        return data.getTierTexts().entrySet().stream()
+                .filter(e -> e.getKey() != TierType.BEST)
+                .map(Map.Entry::getValue)
+                .toList();
+    }
+
+    public static String getError(String playerName) {
+        PlayerData data = PLAYER_DATA.get(playerName.toLowerCase());
+        return data != null ? data.error : null;
+    }
+
+    public static boolean hasData(String playerName) {
+        return PLAYER_DATA.containsKey(playerName.toLowerCase());
     }
 
     public static int getPlayerRank(String playerName) {
-        return PLAYER_RANKS.getOrDefault(playerName.toLowerCase(), -1);
+        PlayerData data = PLAYER_DATA.get(playerName.toLowerCase());
+        return data != null ? data.rank : -1;
     }
 
     public static int getPlayerTotalPoints(String playerName) {
-        return PLAYER_TOTAL_POINTS.getOrDefault(playerName.toLowerCase(), -1);
+        PlayerData data = PLAYER_DATA.get(playerName.toLowerCase());
+        return data != null ? data.totalPoints : -1;
     }
+
+    public static void clearCache() {
+        PLAYER_DATA.clear();
+        FETCH_TIME.clear();
+    }
+
+    private static void setError(String key, String error) {
+        PlayerData data = PLAYER_DATA.computeIfAbsent(key, k -> new PlayerData());
+        data.error = error;
+    }
+
+    private static String capitalize(String str) {
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+    }
+
+    private static class PlayerData {
+        final Map<TierType, Component> tierTexts = new ConcurrentHashMap<>();
+        int rank = -1;
+        int totalPoints = -1;
+        String error;
+
+        void setTierText(TierType type, Component text) {
+            tierTexts.put(type, text);
+            error = null;
+        }
+
+        boolean hasTier(TierType type) {
+            return tierTexts.containsKey(type);
+        }
+
+        Component getTierText(TierType type) {
+            return tierTexts.get(type);
+        }
+
+        Map<TierType, Component> getTierTexts() {
+            return Collections.unmodifiableMap(tierTexts);
+        }
+    }
+
+    private record BestTierResult(TierType type, String tier) {}
 }

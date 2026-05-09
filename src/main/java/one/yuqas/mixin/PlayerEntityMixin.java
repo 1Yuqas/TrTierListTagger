@@ -21,9 +21,9 @@ public abstract class PlayerEntityMixin {
 
         Player self = (Player) (Object) this;
 
-        Component tierText = APIUtils.getFormattedTier(TierType.BEST, self.getName().getString());
+        Component tierText = APIUtils.getFormattedTier(TierConfigUtil.getTierType(), self.getName().getString());
 
-        if (tierText == null || tierText.getString().isEmpty() || tierText.getString().contains("...")) {
+        if (tierText == null || tierText.getString().isEmpty()) {
             return original;
         }
 

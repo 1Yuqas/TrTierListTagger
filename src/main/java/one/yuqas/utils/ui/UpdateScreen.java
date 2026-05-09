@@ -31,7 +31,7 @@ public class UpdateScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        this.extractBackground(context, mouseX, mouseY, delta);
+//        this.extractBackground(context, mouseX, mouseY, delta);
         super.extractRenderState(context, mouseX, mouseY, delta);
 
         String current = FabricLoader.getInstance().getModContainer("trtierlisttagger").get().getMetadata().getVersion().getFriendlyString();
