@@ -4,7 +4,7 @@ import java.awt.*;
 
 public enum TierType {
     BEST("", new Color(0xFFFFFF).getRGB(), new Color(0xFFFFFF).getRGB()),
-    MACE("\uE991", new Color(0x599AFF).getRGB(), new Color(0x4B77C2).getRGB()),
+    MACE("\uE990", new Color(0x599AFF).getRGB(), new Color(0x4B77C2).getRGB()),
     CRYSTAL("\uE992", new Color(0xCC00FF).getRGB(), new Color(0x660099).getRGB()),
     SWORD("\uE993", new Color(0x00FFFF).getRGB(), new Color(0x008B8B).getRGB()),
     UHC("\uE994", new Color(0xFFFF00).getRGB(), new Color(0xFFA500).getRGB()),

@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import one.yuqas.TrTierListTagger;
 import one.yuqas.utils.enums.Config;
+import one.yuqas.utils.enums.TierType;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -68,6 +69,15 @@ public class TierConfigUtil {
 
         VALUES = root;
         save();
+    }
+
+    public static TierType getTierType() {
+        String typeName = getString(Config.TIER_TYPE);
+        try {
+            return TierType.valueOf(typeName.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return TierType.BEST;
+        }
     }
 
     private static void readFile() throws Exception {

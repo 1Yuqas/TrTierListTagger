@@ -18,7 +18,6 @@ public class VersionChecker {
 
     public static void check() {
         try {
-            // Mevcut Minecraft sürümünü al (Örn: 1.21.4)
             String mcVersion = FabricLoader.getInstance().getModContainer("minecraft").get().getMetadata().getVersion().getFriendlyString();
             
             HttpClient client = HttpClient.newHttpClient();
@@ -36,7 +35,6 @@ public class VersionChecker {
                     JsonObject versionObj = element.getAsJsonObject();
                     JsonArray gameVersions = versionObj.getAsJsonArray("game_versions");
 
-                    // Minecraft sürüm uyumluluğunu kontrol et
                     boolean isCompatible = false;
                     for (JsonElement gv : gameVersions) {
                         if (gv.getAsString().equals(mcVersion)) {
@@ -48,11 +46,9 @@ public class VersionChecker {
                     if (isCompatible) {
                         latestVersion = versionObj.get("version_number").getAsString();
                         
-                        // "files" dizisindeki URL'yi çek
                         JsonArray files = versionObj.getAsJsonArray("files");
                         for (JsonElement fileElement : files) {
                             JsonObject fileObj = fileElement.getAsJsonObject();
-                            // 'primary' olan dosyanın indirme linkini al
                             if (fileObj.get("primary").getAsBoolean()) {
                                 updateUrl = fileObj.get("url").getAsString(); 
                                 break;
@@ -62,7 +58,6 @@ public class VersionChecker {
                         String currentModVersion = FabricLoader.getInstance()
                                 .getModContainer("trtierlisttagger").get().getMetadata().getVersion().getFriendlyString();
 
-                        // Sürüm karşılaştırması
                         if (!currentModVersion.equals(latestVersion)) {
                             updateAvailable = true;
                         }
