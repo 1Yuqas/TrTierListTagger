@@ -207,7 +207,7 @@ public class PlayerSearchScreen extends Screen {
                             skinWidget = new PlayerSkinWidget(
                                 60,
                                 144,
-                                client.getLoadedEntityModels(),
+                                client.getEntityModelLoader(),
                                 skinSupplier
                             );
                             skinWidget.setPosition(centerX - 65, centerY - 72);
