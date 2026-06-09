@@ -35,7 +35,7 @@ public class TabTagMixin {
             if (playerName == null) return baseName;
 
             Text tierText = customTier != null ? customTier :
-                    APIUtils.getFormattedTier(TierConfigUtil.getTierType(), playerName);
+                    APIUtils.getFormattedTierCompact(TierConfigUtil.getTierType(), playerName);
 
             if (tierText == null || tierText.getString().isEmpty()) return baseName;
 
