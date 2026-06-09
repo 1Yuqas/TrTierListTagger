@@ -17,7 +17,7 @@ public abstract class PlayerEntityMixin {
     private Text injectTier(Text original) {
         if (!TierConfigUtil.getBoolean(Config.TAG)) return original;
         PlayerEntity self = (PlayerEntity) (Object) this;
-        Text tierText = APIUtils.getFormattedTier(TierConfigUtil.getTierType(), self.getName().getString());
+        Text tierText = APIUtils.getFormattedTierCompact(TierConfigUtil.getTierType(), self.getName().getString());
 
         if (tierText == null || tierText.getString().isEmpty()) {
             return original;
