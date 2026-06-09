@@ -43,6 +43,29 @@ public class APIUtils {
         return Component.empty();
     }
 
+    public static Component getFormattedTierCompact(TierType type, String playerName) {
+        if (playerName == null || playerName.isEmpty()) return Component.empty();
+
+        String key = playerName.toLowerCase();
+        PlayerData data = PLAYER_DATA.get(key);
+
+        if (data != null) {
+            if (data.compactTierTexts.containsKey(type)) {
+                return data.compactTierTexts.get(type);
+            } else if (data.tierTexts.containsKey(type)) {
+                return data.tierTexts.get(type);
+            }
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - FETCH_TIME.getOrDefault(key, 0L) > CACHE_DURATION) {
+            FETCH_TIME.put(key, now);
+            fetchAsync(playerName);
+        }
+
+        return Component.empty();
+    }
+
     private static void fetchAsync(String playerName) {
         EXECUTOR.submit(() -> fetchPlayerData(playerName));
     }
@@ -75,14 +98,17 @@ public class APIUtils {
                 if (rankings.has(apiKey)) {
                     String tier = rankings.get(apiKey).getAsString();
                     if (tier != null && !tier.equalsIgnoreCase("none")) {
-                        data.setTierText(type, formatTierText(type, tier));
+                        data.setTierText(type, formatTierText(type, tier, false));
+                        data.setCompactTierText(type, formatTierText(type, tier, true));
                     }
                 }
             }
 
             BestTierResult best = findBest(rankings);
             if (best != null) {
-                data.setTierText(TierType.BEST, formatBestText(best));
+                Component bestText = formatBestText(best);
+                data.setTierText(TierType.BEST, bestText);
+                data.setCompactTierText(TierType.BEST, bestText);
             }
 
             PLAYER_DATA.put(key, data);
@@ -121,14 +147,29 @@ public class APIUtils {
     }
 
     private static Component formatTierText(TierType type, String tier) {
-        String tierName = tier.toUpperCase();
-        int tierColor = tierName.startsWith("HT") ? type.getHtColor() : type.getLtColor();
-        String typeName = capitalize(type.name());
+        return formatTierText(type, tier, false);
+    }
 
-        return Component.empty()
-                .append(Component.literal(type.getIcon() + " "))
-                .append(Component.literal(typeName + ": ").withStyle(s -> s.withColor(type.getHtColor())))
-                .append(Component.literal(tierName).withStyle(s -> s.withColor(tierColor).withBold(true)));
+    private static Component formatTierText(TierType type, String tier, boolean compact) {
+        String tierName = tier.toUpperCase();
+        int tierColor = tierName.startsWith("HT")
+                ? type.getHtColor()
+                : type.getLtColor();
+
+        Component component = Component.empty()
+                .append(Component.literal(type.getIcon() + " "));
+
+        if (!compact) {
+            component = component.copy().append(
+                    Component.literal(capitalize(type.name()) + ": ")
+                            .withStyle(s -> s.withColor(type.getHtColor()))
+            );
+        }
+
+        return component.copy().append(
+                Component.literal(tierName)
+                        .withStyle(s -> s.withColor(tierColor).withBold(false))
+        );
     }
 
     private static Component formatBestText(BestTierResult best) {
@@ -212,6 +253,8 @@ public class APIUtils {
 
     private static class PlayerData {
         final Map<TierType, Component> tierTexts = new ConcurrentHashMap<>();
+        final Map<TierType, Component> compactTierTexts = new ConcurrentHashMap<>();
+
         int rank = -1;
         int totalPoints = -1;
         String error;
@@ -221,12 +264,20 @@ public class APIUtils {
             error = null;
         }
 
+        void setCompactTierText(TierType type, Component text) {
+            compactTierTexts.put(type, text);
+        }
+
         boolean hasTier(TierType type) {
-            return tierTexts.containsKey(type);
+            return tierTexts.containsKey(type) || compactTierTexts.containsKey(type);
         }
 
         Component getTierText(TierType type) {
             return tierTexts.get(type);
+        }
+
+        Component getCompactTierText(TierType type) {
+            return compactTierTexts.get(type);
         }
 
         Map<TierType, Component> getTierTexts() {
