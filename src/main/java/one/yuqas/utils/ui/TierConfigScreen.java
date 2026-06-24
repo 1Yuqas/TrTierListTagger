@@ -78,20 +78,20 @@ public class TierConfigScreen extends Screen {
 
         this.addRenderableWidget(Button.builder(
                 Component.literal("Oyuncu Ara").withStyle(s -> s.withColor(0xFFFFCC00)),
-                btn -> this.minecraft.setScreen(new PlayerSearchScreen(this))
+                btn -> this.minecraft.gui.setScreen(new PlayerSearchScreen(this))
         ).bounds(centerX - 100, 250, 200, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.literal("Kaydet").withStyle(s -> s.withColor(0xFF2ECC71)),
                 btn -> {
                     save();
-                    this.minecraft.setScreen(parent);
+                    this.minecraft.gui.setScreen(parent);
                 }
         ).bounds(centerX - 105, 275, 100, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.literal("Vazgeç").withStyle(s -> s.withColor(0xFFE74C3C)),
-                btn -> this.minecraft.setScreen(parent)
+                btn -> this.minecraft.gui.setScreen(parent)
         ).bounds(centerX + 5, 275, 100, 20).build());
     }
 
@@ -152,7 +152,7 @@ public class TierConfigScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
-            this.minecraft.setScreen(parent);
+            this.minecraft.gui.setScreen(parent);
             return true;
         }
         return super.keyPressed(event);

@@ -62,7 +62,7 @@ public class PlayerSearchScreen extends Screen {
                 .bounds(centerX - 80, 85, 160, 20).build();
         this.addRenderableWidget(searchButton);
 
-        this.addRenderableWidget(Button.builder(Component.literal("Bitti").withStyle(s -> s.withColor(0xCCCCCC)), btn -> this.minecraft.setScreen(parent))
+        this.addRenderableWidget(Button.builder(Component.literal("Bitti").withStyle(s -> s.withColor(0xCCCCCC)), btn -> this.minecraft.gui.setScreen(parent))
                 .bounds(centerX - 80, this.height - 30, 160, 20).build());
 
         updateVisibility();
@@ -258,7 +258,7 @@ public class PlayerSearchScreen extends Screen {
             }
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            this.minecraft.setScreen(this.parent);
+            this.minecraft.gui.setScreen(this.parent);
             return true;
         }
         if (this.searchField.keyPressed(event)) {

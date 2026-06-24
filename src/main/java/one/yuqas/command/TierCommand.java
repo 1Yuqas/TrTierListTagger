@@ -16,7 +16,7 @@ public class TierCommand {
         dispatcher.register(
                 ClientCommands.literal("trtiertagger")
                         .executes(context -> {
-                            minecraft.execute(() -> minecraft.setScreen(new TierConfigScreen(null)));
+                            minecraft.execute(() -> minecraft.gui.setScreen(new TierConfigScreen(null)));
                             return 1;
                         })
                         .then(ClientCommands.argument("player", StringArgumentType.word())
@@ -34,8 +34,8 @@ public class TierCommand {
                                 .executes(context -> {
                                     String player = StringArgumentType.getString(context, "player");
                                     minecraft.execute(() ->
-                                            minecraft.setScreen(new PlayerSearchScreen(
-                                                    minecraft.screen,
+                                            minecraft.gui.setScreen(new PlayerSearchScreen(
+                                                    minecraft.gui.screen(),
                                                     player
                                             ))
                                     );

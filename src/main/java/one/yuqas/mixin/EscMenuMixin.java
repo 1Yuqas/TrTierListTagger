@@ -1,7 +1,9 @@
 package one.yuqas.mixin;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -19,33 +21,29 @@ public abstract class EscMenuMixin extends Screen {
         super(title);
     }
 
-    @Inject(method = "init", at = @At("TAIL"))
-    private void addButton(CallbackInfo ci) {
-        Button settingsButton = null;
-
-        for (var renderable : this.children()) {
-            if (renderable instanceof Button b) {
-                String label = b.getMessage().getString();
-                if (label.contains("Options") || label.contains("Ayarlar")) {
-                    settingsButton = b;
-                    break;
-                }
-            }
-        }
-
-        if (settingsButton == null) return;
+    @Inject(
+            method = "createPauseMenu",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/layouts/LinearLayout;addChild(Lnet/minecraft/client/gui/layouts/LayoutElement;)Lnet/minecraft/client/gui/layouts/LayoutElement;",
+                    ordinal = 0,
+                    shift = At.Shift.AFTER
+            )
+    )
+    private void addTierListButton(CallbackInfo ci, @Local LinearLayout iconButtonRow) {
+        if (iconButtonRow == null) return;
 
         int buttonSize = 20;
-        int x = settingsButton.getX() - buttonSize - 5;
-        int y = settingsButton.getY() + (settingsButton.getHeight() - buttonSize) / 2;
 
-        Component buttonText = Component.literal("\uE991").withStyle(ChatFormatting.RED);
+        Component buttonText = Component.literal("\uE991")
+                .withStyle(ChatFormatting.RED)
+                .withoutShadow();
 
-        Button customButton = Button.builder(buttonText, b ->
-                        Minecraft.getInstance().setScreen(new TierConfigScreen(this)))
-                .bounds(x, y, buttonSize, buttonSize)
+        Button customButton = Button.builder(buttonText, _ ->
+                        Minecraft.getInstance().gui.setScreen(new TierConfigScreen(this)))
+                .bounds(0, 0, buttonSize, buttonSize)
                 .build();
 
-        this.addRenderableWidget(customButton);
+        iconButtonRow.addChild(customButton);
     }
 }

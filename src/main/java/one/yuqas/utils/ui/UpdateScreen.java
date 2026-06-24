@@ -25,7 +25,7 @@ public class UpdateScreen extends Screen {
         }).bounds(this.width / 2 - 105, this.height / 2 + 10, 100, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Boşver"), button -> {
-            this.minecraft.setScreen(this.parent);
+            this.minecraft.gui.setScreen(this.parent);
         }).bounds(this.width / 2 + 5, this.height / 2 + 10, 100, 20).build());
     }
 

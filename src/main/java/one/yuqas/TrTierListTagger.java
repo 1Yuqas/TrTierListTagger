@@ -19,8 +19,8 @@ public class TrTierListTagger implements ModInitializer {
         new Thread(VersionChecker::check).start();
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (VersionChecker.updateAvailable && !hasShownUpdate && client.screen instanceof TitleScreen) {
-                client.setScreen(new UpdateScreen(client.screen));
+            if (VersionChecker.updateAvailable && !hasShownUpdate && client.gui.screen() instanceof TitleScreen) {
+                client.gui.setScreen(new UpdateScreen(client.gui.screen()));
                 hasShownUpdate = true;
             }
         });
