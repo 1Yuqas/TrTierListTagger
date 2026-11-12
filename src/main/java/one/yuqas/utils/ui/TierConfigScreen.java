@@ -1,5 +1,6 @@
 package one.yuqas.utils.ui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -8,7 +9,6 @@ import net.minecraft.network.chat.Component;
 import one.yuqas.utils.TierConfigUtil;
 import one.yuqas.utils.enums.Config;
 import one.yuqas.utils.enums.TierType;
-import org.lwjgl.glfw.GLFW;
 
 public class TierConfigScreen extends Screen {
     private final Screen parent;
@@ -151,7 +151,7 @@ public class TierConfigScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+        if (event.key() == InputConstants.KEY_ESCAPE) {
             this.minecraft.gui.setScreen(parent);
             return true;
         }

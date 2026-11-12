@@ -1,5 +1,6 @@
 package one.yuqas.utils.ui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -11,7 +12,6 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.SkinManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.PlayerSkin;
-import org.lwjgl.glfw.GLFW;
 
 import java.awt.*;
 import java.util.List;
@@ -251,13 +251,13 @@ public class PlayerSearchScreen extends Screen {
     @Override
     public boolean keyPressed(final KeyEvent event) {
         int keyCode = event.key();
-        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+        if (keyCode == InputConstants.KEY_RETURN || keyCode == InputConstants.KEY_NUMPADENTER) {
             if (this.searchField.isVisible() && !this.searchField.getValue().isEmpty()) {
                 this.startSearch();
                 return true;
             }
         }
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyCode == InputConstants.KEY_ESCAPE) {
             this.minecraft.gui.setScreen(this.parent);
             return true;
         }

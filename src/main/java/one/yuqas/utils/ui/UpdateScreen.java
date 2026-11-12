@@ -7,8 +7,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Util;
 import one.yuqas.utils.VersionChecker;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 
 import java.awt.*;
+import java.net.URI;
 
 public class UpdateScreen extends Screen {
     private final Screen parent;
@@ -21,7 +23,7 @@ public class UpdateScreen extends Screen {
     @Override
     protected void init() {
         this.addRenderableWidget(Button.builder(Component.literal("Yeni Sürüm Yükle"), button -> {
-            Util.getPlatform().openUri("https://modrinth.com/mod/tgKll25i");
+            ConfirmLinkScreen.confirmLinkNow(this, URI.create("https://modrinth.com/mod/tgKll25i"));
         }).bounds(this.width / 2 - 105, this.height / 2 + 10, 100, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Boşver"), button -> {
