@@ -1,0 +1,20 @@
+Bu Fabric Minecraft moduna (TrTierListTagger) aktif oyuncu istatistiklerini toplamak için hafif, asenkron ve Modrinth kurallarına %100 uyumlu bir telemetri (heartbeat) sistemi ekle.
+
+Gereksinimler:
+1. Config Ayarı (Modrinth Opt-Out Kuralı):
+   - Mevcut config sistemine (config/trtierlisttagger.json veya ilgili config sınıfına) varsayılan değeri `true` olan `enableTelemetry` (boolean) alanı ekle.
+   - Config okunurken bir hata oluşursa veya `enableTelemetry` değeri `false` ise hiçbir ağ isteği kesinlikle atılmamalı ve zamanlayıcı başlatılmamalı.
+
+2. Mod Açılışında Başlayan Arka Plan Zamanlayıcısı:
+   - Oyuncu bir sunucuya bağlanmasa bile, oyun/mod başlatıldığında (`onInitializeClient` aşamasında, config yüklendikten hemen sonra) telemetri sistemi devreye girmeli.
+   - Açılışta hemen ilk heartbeat isteğini atmalı ve oyun açık kaldığı sürece arka planda daemon bir `ScheduledExecutorService` (veya eşdeğeri) ile her 5 dakikada bir periyodik olarak tekrar göndermeli.
+   - Ağ istekleri ana oyun thread'ini (render/tick) kesinlikle bloklamamalı; Java `HttpClient` veya `CompletableFuture.runAsync` ile tamamen asenkron çalışmalı. Olası bağlantı veya timeout hataları sessizce yakalanmalı, oyuncuya hata mesajı veya konsol spam'i gösterilmemeli.
+
+3. Gönderilecek Veri ve API Ucu:
+   - Hedef URL: `POST https://api.trtierlist.com/api/telemetry/heartbeat`
+   - Header'lar: `Content-Type: application/json` ve `User-Agent: TrTierListTagger/<mod_surumu>`
+   - JSON Gövdesi (Kesinlikle UUID, oyuncu adı veya kişisel veri gönderilmeyecek):
+     `{"type": "<premium_veya_cracked>", "version": "<mod_surumu>"}`
+   - Hesap Türü (`type`) Tespiti: `MinecraftClient.getInstance().getSession().getUuidOrNull()` üzerinden UUID alınacak; `uuid != null && uuid.version() == 4` ise `"premium"`, aksi halde `"cracked"` gönderilecek. Mod sürümü `FabricLoader.getInstance().getModContainer("trtierlisttagger")` üzerinden dinamik okunacak.
+
+Mevcut kod yapısını ve GUI'yi bozmadan sadece gerekli sınıfları oluştur/güncelle ve değişiklikleri özetle.
