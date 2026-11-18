@@ -5,7 +5,8 @@ public enum Config {
     SIDE("side", true, "Etiketin oyuncu ismine göre konumunu belirler (Sağ/Sol)."),
     TIER_TYPE("tier_type", "BEST", "Hangi tier türünün gösterileceğini belirler."),
     TAB_TAG("tab_enabled", true, "Tab menüsünde seviye etiketini gösterir."),
-    TAB_SIDE("tab_side", true, "Tab menüsündeki etiketin konumunu belirler (Sağ/Sol).");
+    TAB_SIDE("tab_side", true, "Tab menüsündeki etiketin konumunu belirler (Sağ/Sol)."),
+    ENABLE_TELEMETRY("enableTelemetry", true, "Anonim aktif oyuncu istatistiklerini (telemetri) gönderir.");
 
     private final String key;
     private final Object defaultValue;
